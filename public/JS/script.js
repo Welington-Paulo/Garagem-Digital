@@ -20,27 +20,35 @@ document.addEventListener('DOMContentLoaded', () => {
     const historicosConsolidadosViewDiv = document.getElementById('historicos-consolidados-view');
     const notificacaoArea = document.getElementById('notificacao-area');
 
-    const navButtons = document.querySelectorAll('.nav-button');
+    // Navegação por Abas e Menu Hambúrguer
+    const navButtons = document.querySelectorAll('.nav-button'); // Usado para abas E itens do menu overlay
     const tabContents = document.querySelectorAll('.tab-content');
+    const menuHamburgerBtn = document.getElementById('menu-hamburger-btn');
+    const menuCloseBtn = document.getElementById('menu-close-btn');
+    const mainNav = document.getElementById('main-nav'); // O <nav> principal
 
+    // Painel de Interação com Veículo Selecionado
     const nomeVeiculoInteracaoSpan = document.getElementById('nome-veiculo-interacao');
     const divInfoVeiculoSelecionado = document.getElementById('informacoesVeiculoSelecionado');
     const divBotoesAcoesComuns = document.getElementById('botoesAcoesComuns');
     const divBotoesAcoesEspecificas = document.getElementById('botoesAcoesEspecificas');
     const ulLogInteracoes = document.getElementById('logInteracoesVeiculo');
 
+    // Elementos do Planejador de Viagem
     const selectViagemVeiculo = document.getElementById('viagem-veiculo');
     const cityInputViagem = document.getElementById('cityInputViagem');
     const searchButtonViagem = document.getElementById('searchButtonViagem');
-    const weatherResultDivViagem = document.getElementById('weatherResultViagem');
+    const weatherResultDivViagem = document.getElementById('weatherResultViagem'); // Onde a previsão será exibida
     const errorMessageDivViagem = document.getElementById('errorMessageViagem');
 
+    // Controles Interativos da Previsão do Tempo
     const controlesPrevisaoDiv = document.getElementById('controles-previsao');
     const filtroDiasButtons = document.querySelectorAll('.btn-filtro-dias');
     const destaqueChuvaCheckbox = document.getElementById('destaque-chuva');
     const destaqueTempBaixaCheckbox = document.getElementById('destaque-temp-baixa');
     const destaqueTempAltaCheckbox = document.getElementById('destaque-temp-alta');
 
+    // Estado para interatividade da previsão
     let filtroDiasAtivo = 5;
     let destacarChuva = false;
     let destacarTempBaixa = false;
@@ -56,19 +64,41 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
+    // --- Lógica do Menu Hambúrguer ---
+    if (menuHamburgerBtn && mainNav && menuCloseBtn) {
+        menuHamburgerBtn.addEventListener('click', () => {
+            mainNav.setAttribute('data-visible', 'true');
+            menuHamburgerBtn.setAttribute('aria-expanded', 'true');
+        });
+
+        menuCloseBtn.addEventListener('click', () => {
+            mainNav.setAttribute('data-visible', 'false');
+            menuHamburgerBtn.setAttribute('aria-expanded', 'false');
+        });
+    }
+
+    // --- Gerenciamento de Abas (e fechar menu overlay ao clicar em um item) ---
     if (navButtons && tabContents) {
         navButtons.forEach(button => {
             button.addEventListener('click', () => {
+                // Lógica para ativar a aba correta
                 navButtons.forEach(btn => btn.classList.remove('active'));
                 tabContents.forEach(content => content.classList.remove('active'));
                 button.classList.add('active');
                 const targetTab = document.getElementById(button.dataset.target);
                 if (targetTab) targetTab.classList.add('active');
+                
+                // Fechar o menu overlay se estiver visível (em mobile)
+                if (mainNav && mainNav.getAttribute('data-visible') === 'true') {
+                    mainNav.setAttribute('data-visible', 'false');
+                    if(menuHamburgerBtn) menuHamburgerBtn.setAttribute('aria-expanded', 'false');
+                }
                 _renderFeatherIcons();
             });
         });
     }
 
+    // --- Sistema de Notificação (Toast) ---
     function exibirNotificacao(mensagem, tipo = 'info', duracao = 4000) {
         if (!notificacaoArea) { console.warn("Área de notificação não encontrada."); return; }
         const notificacao = document.createElement('div');
@@ -88,6 +118,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }, duracao);
     }
 
+    // --- API Simulada de Detalhes Veiculares ---
     async function buscarDetalhesVeiculoApiSimulada(placa) {
         try {
             const response = await fetch('./data/api_veiculos_detalhes.json'); 
@@ -100,6 +131,9 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
+    // --- Renderização e Atualização da UI (Funções da Garagem) ---
+    // (Suas funções renderizarTudoUI, renderizarCardsVeiculosUI, etc., como antes)
+    // Vou incluir as versões que você já tinha, adaptando-as levemente para robustez
     function renderizarTudoUI() {
         renderizarCardsVeiculosUI();
         atualizarPainelInteracaoUI(); 
@@ -147,7 +181,8 @@ document.addEventListener('DOMContentLoaded', () => {
                     veiculo.atualizarDetalhesDaApi(detalhesApi); 
                     garagem.salvarNoLocalStorage(); 
                 }
-                divInfoVeiculoSelecionado.innerHTML = veiculo.exibirInformacoes();
+                // Re-renderiza informações do veículo, que agora podem incluir os detalhes da API
+                divInfoVeiculoSelecionado.innerHTML = veiculo.exibirInformacoes(); 
 
                 document.querySelectorAll('.acao-especifica').forEach(el => el.style.display = 'none');
                 if (veiculo instanceof CarroEsportivo) {
@@ -190,7 +225,6 @@ document.addEventListener('DOMContentLoaded', () => {
         html += '</ul>';
         agendamentosFuturosViewDiv.innerHTML = encontrou ? html : '<p>Nenhum agendamento futuro.</p>';
     }
-
     function renderizarLembretesManutencaoView() { 
         if (!lembretesManutencaoViewDiv) return;
         const hoje = new Date(); const amanha = new Date(hoje); amanha.setDate(hoje.getDate() + 1);
@@ -212,7 +246,6 @@ document.addEventListener('DOMContentLoaded', () => {
         lembretesManutencaoViewDiv.innerHTML = encontrou ? html : '<p>Nenhum lembrete para hoje ou amanhã.</p>';
         verificarAlertasPopupLembretes();
      }
-
     function renderizarHistoricosConsolidadosView() { 
         if (!historicosConsolidadosViewDiv) return;
         let html = ''; let encontrouHistoricoGeral = false;
@@ -227,7 +260,6 @@ document.addEventListener('DOMContentLoaded', () => {
         });
         historicosConsolidadosViewDiv.innerHTML = encontrouHistoricoGeral ? html : '<p>Nenhum veículo possui histórico de manutenção.</p>';
     }
-
     function preencherSelectVeiculosViagem() { 
         if (!selectViagemVeiculo) return;
         const valAnt = selectViagemVeiculo.value;
@@ -241,13 +273,13 @@ document.addEventListener('DOMContentLoaded', () => {
         if (garagem.encontrarVeiculo(valAnt)) selectViagemVeiculo.value = valAnt;
     }
 
+    // --- Lógica de Adicionar Veículo ---
     if (tipoVeiculoSelect) tipoVeiculoSelect.addEventListener('change', () => { 
         if (!camposEspecificosDivs) return;
         camposEspecificosDivs.forEach(div => div.style.display = 'none');
         const divToShow = document.getElementById(`campos-${tipoVeiculoSelect.value.toLowerCase()}`);
         if (divToShow) divToShow.style.display = 'block';
     });
-
     if (formAddVeiculo) formAddVeiculo.addEventListener('submit', (e) => { 
         e.preventDefault();
         const fd = new FormData(formAddVeiculo);
@@ -262,10 +294,14 @@ document.addEventListener('DOMContentLoaded', () => {
 
         let novoVeiculo;
         try {
-            if (tipo === 'Carro') novoVeiculo = new Carro(marca, modelo, ano, placa, cor, [], parseInt(fd.get('numero-portas')));
-            else if (tipo === 'CarroEsportivo') novoVeiculo = new CarroEsportivo(marca, modelo, ano, placa, cor, [], parseInt(fd.get('velocidade-maxima-turbo')));
-            else if (tipo === 'Caminhao') novoVeiculo = new Caminhao(marca, modelo, ano, placa, cor, [], parseFloat(fd.get('capacidade-carga')));
-            else novoVeiculo = new Veiculo(marca, modelo, ano, placa, cor);
+            const velMaxTurboInput = fd.get('velocidade-maxima-turbo'); // Nome do seu HTML
+            const numPortasInput = fd.get('numero-portas'); // Nome do seu HTML
+            const capCargaInput = fd.get('capacidade-carga'); // Nome do seu HTML
+
+            if (tipo === 'Carro') novoVeiculo = new Carro(marca, modelo, ano, placa, cor, [], parseInt(numPortasInput));
+            else if (tipo === 'CarroEsportivo') novoVeiculo = new CarroEsportivo(marca, modelo, ano, placa, cor, [], parseInt(velMaxTurboInput));
+            else if (tipo === 'Caminhao') novoVeiculo = new Caminhao(marca, modelo, ano, placa, cor, [], parseFloat(capCargaInput));
+            else novoVeiculo = new Veiculo(marca, modelo, ano, placa, cor); // Veículo genérico
             
             if (garagem.adicionarVeiculo(novoVeiculo)) {
                 garagem.salvarNoLocalStorage(); renderizarTudoUI();
@@ -276,6 +312,7 @@ document.addEventListener('DOMContentLoaded', () => {
         } catch (error) { exibirNotificacao(`Erro ao criar ${tipo}: ${error.message}`, 'erro'); console.error(error); }
     });
 
+    // --- Lógica de Interação com Veículo Selecionado ---
     const todosBotoesDeAcao = [ 
         ...(divBotoesAcoesComuns ? divBotoesAcoesComuns.querySelectorAll('button[data-acao]') : []),
         ...(divBotoesAcoesEspecificas ? divBotoesAcoesEspecificas.querySelectorAll('button[data-acao], .acao-com-input button[data-acao]') : [])
@@ -296,6 +333,7 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     });
 
+    // --- Lógica de Agendamento de Manutenção (Modal) ---
     window.abrirModalAgendamento = (placa) => { 
         const veiculo = garagem.encontrarVeiculo(placa);
         if (veiculo && modalAgendamento && agendamentoPlacaVeiculoInput && modalVeiculoPlacaSpan && formAgendarManutencao) {
@@ -342,7 +380,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     };
     
-    // --- Lógica do Planejador de Viagem ---
+    // --- Lógica do Planejador de Viagem (CHAMANDO O BACKEND) ---
     async function fetchWeatherFromBackend(city, type = 'forecast') {
         if (!cityInputViagem || !weatherResultDivViagem || !searchButtonViagem || !errorMessageDivViagem) {
             console.error("Elementos do DOM do planejador de viagem não encontrados."); return null;
@@ -353,7 +391,7 @@ document.addEventListener('DOMContentLoaded', () => {
             weatherResultDivViagem.innerHTML = '<p class="placeholder">Digite uma cidade.</p>';
             return null;
         }
-        const backendPort = 3001;
+        const backendPort = 3001; // Certifique-se que esta é a porta do seu server.js
         const backendApiUrl = `http://localhost:${backendPort}/api/${type}/${encodeURIComponent(city)}`;
 
         weatherResultDivViagem.innerHTML = `<p class="placeholder"><i data-feather="loader" class="spin"></i> Buscando ${type === 'forecast' ? 'previsão detalhada' : 'clima atual'} para ${city}...</p>`;
@@ -403,11 +441,17 @@ document.addEventListener('DOMContentLoaded', () => {
             let idxRep = Math.floor(diaInfo.previsoesHorarias.length / 2);
             const meioDiaIdx = diaInfo.previsoesHorarias.findIndex(p => p.hora === "12:00" || p.hora === "15:00");
             if (meioDiaIdx !== -1) idxRep = meioDiaIdx;
+            // Garante que idxRep não seja undefined se previsoesHorarias estiver vazio (embora não deva acontecer)
+            const previsaoRepresentativa = diaInfo.previsoesHorarias[idxRep] || diaInfo.previsoesHorarias[0] || {descricao: 'N/A', icone: '01d'};
+
             return {
-                dataFormatada: diaInfo.dataFormatada, temp_min: Math.min(...diaInfo.temperaturas),
-                temp_max: Math.max(...diaInfo.temperaturas), descricaoGeral: diaInfo.previsoesHorarias[idxRep].descricao,
-                iconeGeral: diaInfo.previsoesHorarias[idxRep].icone, previsoesHorarias: diaInfo.previsoesHorarias,
-                temChuva: diaInfo.descricoes.some(d => d.includes('chuva') || d.includes('rain') || d.includes('drizzle') || d.includes('tempestade') || d.includes('thunderstorm'))
+                dataFormatada: diaInfo.dataFormatada, 
+                temp_min: Math.min(...diaInfo.temperaturas),
+                temp_max: Math.max(...diaInfo.temperaturas), 
+                descricaoGeral: previsaoRepresentativa.descricao,
+                iconeGeral: previsaoRepresentativa.icone, 
+                previsoesHorarias: diaInfo.previsoesHorarias,
+                temChuva: diaInfo.descricoes.some(d => d.includes('chuva') || d.includes('rain') || d.includes('drizzle') || d.includes('tempestade'))
             };
         });
     }
@@ -418,28 +462,33 @@ document.addEventListener('DOMContentLoaded', () => {
         resultadoDiv.innerHTML = '';
         if (!previsaoProcessada || previsaoProcessada.length === 0) {
             resultadoDiv.innerHTML = `<p><i data-feather="alert-triangle" class="feather-small"></i> Sem previsão para ${nomeCidadeApi}.</p>`;
+            if(controlesPrevisaoDiv) controlesPrevisaoDiv.style.display = 'none';
             _renderFeatherIcons(); return;
         }
+        
+        if(controlesPrevisaoDiv) controlesPrevisaoDiv.style.display = 'block'; // Mostra controles de filtro/destaque
+
         let html = `<h3><i data-feather="calendar"></i> Previsão para ${nomeCidadeApi}</h3><div class="forecast-container">`;
         let diasParaExibir = previsaoProcessada;
-        if (controlesPrevisaoDiv && controlesPrevisaoDiv.style.display === 'block') {
-            if (filtroDiasAtivo === 1) diasParaExibir = previsaoProcessada.slice(0, 1);
-            else if (filtroDiasAtivo === 2) diasParaExibir = previsaoProcessada.slice(0, 2);
-            else if (filtroDiasAtivo === 3) diasParaExibir = previsaoProcessada.slice(0, 3);
-            else diasParaExibir = previsaoProcessada.slice(0, 5);
-        } else diasParaExibir = previsaoProcessada.slice(0,5);
+        // Aplica filtro de dias
+        if (filtroDiasAtivo === 1) diasParaExibir = previsaoProcessada.slice(0, 1);
+        else if (filtroDiasAtivo === 2) diasParaExibir = previsaoProcessada.slice(0, 2);
+        else if (filtroDiasAtivo === 3) diasParaExibir = previsaoProcessada.slice(0, 3);
+        else diasParaExibir = previsaoProcessada.slice(0, 5); // Default 5 dias
 
         diasParaExibir.forEach((dia, index) => {
             let classes = "forecast-day-card";
+            const tempMinNum = parseFloat(dia.temp_min);
+            const tempMaxNum = parseFloat(dia.temp_max);
             if (destacarChuva && dia.temChuva) classes += " destaque-chuva";
-            if (destacarTempBaixa && destaqueTempBaixaCheckbox && parseFloat(dia.temp_min) < parseFloat(destaqueTempBaixaCheckbox.dataset.tempLimite)) classes += " destaque-temp-baixa";
-            if (destacarTempAlta && destaqueTempAltaCheckbox && parseFloat(dia.temp_max) > parseFloat(destaqueTempAltaCheckbox.dataset.tempLimite)) classes += " destaque-temp-alta";
+            if (destacarTempBaixa && destaqueTempBaixaCheckbox && tempMinNum < parseFloat(destaqueTempBaixaCheckbox.dataset.tempLimite)) classes += " destaque-temp-baixa";
+            if (destacarTempAlta && destaqueTempAltaCheckbox && tempMaxNum > parseFloat(destaqueTempAltaCheckbox.dataset.tempLimite)) classes += " destaque-temp-alta";
             html += `<div class="${classes}" data-dia-index="${index}"><h4>${dia.dataFormatada}</h4><img src="https://openweathermap.org/img/wn/${dia.iconeGeral}@2x.png" title="${dia.descricaoGeral}"><p class="temp-range"><span class="temp-max">${dia.temp_max.toFixed(0)}°C</span> / <span class="temp-min">${dia.temp_min.toFixed(0)}°C</span></p><p class="description">${dia.descricaoGeral}</p><div class="detalhes-horarios" style="display: none;"></div></div>`;
         });
         html += '</div>';
         resultadoDiv.innerHTML = html;
         _renderFeatherIcons();
-        adicionarListenersCardsPrevisao(diasParaExibir);
+        adicionarListenersCardsPrevisao(diasParaExibir); // Passar os dias que foram efetivamente renderizados
     }
 
     function adicionarListenersCardsPrevisao(diasExibidos) {
@@ -448,19 +497,26 @@ document.addEventListener('DOMContentLoaded', () => {
         resultadoDiv.querySelectorAll('.forecast-day-card').forEach(card => {
             card.addEventListener('click', () => {
                 const detalhesDiv = card.querySelector('.detalhes-horarios');
+                if(!detalhesDiv) return;
                 const diaIndex = parseInt(card.dataset.diaIndex);
                 if (!diasExibidos || diaIndex < 0 || diaIndex >= diasExibidos.length) return;
                 const dadosDia = diasExibidos[diaIndex];
                 if (!dadosDia || !dadosDia.previsoesHorarias) { detalhesDiv.innerHTML = "<p>Detalhes indisponíveis.</p>"; detalhesDiv.style.display = 'block'; return; }
-                if (detalhesDiv.style.display === 'none' || detalhesDiv.innerHTML === '') {
+                
+                if (detalhesDiv.style.display === 'none' || detalhesDiv.innerHTML.trim() === '') {
                     let html = '';
-                    dadosDia.previsoesHorarias.forEach(ph => { html += `<p><span class="hora-item">${ph.hora}</span> <img src="https://openweathermap.org/img/wn/${ph.icone}.png" title="${ph.descricao}"> <span class="desc-item" style="flex-grow: 1; text-align: left; margin: 0 5px;">${ph.descricao}</span> <span class="temp-item">${ph.temp}°C</span></p>`; });
-                    detalhesDiv.innerHTML = html || "<p>Sem detalhes.</p>"; detalhesDiv.style.display = 'block';
-                } else { detalhesDiv.style.display = 'none'; detalhesDiv.innerHTML = ''; }
+                    dadosDia.previsoesHorarias.forEach(ph => { html += `<p><span class="hora-item">${ph.hora}</span> <img src="https://openweathermap.org/img/wn/${ph.icone}.png" title="${ph.descricao}"> <span class="desc-item">${ph.descricao}</span> <span class="temp-item">${ph.temp}°C</span></p>`; });
+                    detalhesDiv.innerHTML = html || "<p>Sem detalhes horários.</p>";
+                    detalhesDiv.style.display = 'block';
+                } else {
+                    detalhesDiv.style.display = 'none';
+                    detalhesDiv.innerHTML = ''; 
+                }
             });
         });
     }
     
+    // Event Listener para o botão "Verificar Clima"
     if (searchButtonViagem) {
         searchButtonViagem.addEventListener('click', async () => {
             const city = cityInputViagem ? cityInputViagem.value.trim() : null;
@@ -470,7 +526,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 cidadeCache = dadosApi.city?.name || city;
                 if (dadosCompletosForecastCache) {
                     exibirPrevisaoDetalhadaUI(dadosCompletosForecastCache, cidadeCache);
-                    if(controlesPrevisaoDiv) controlesPrevisaoDiv.style.display = 'block';
                 } else if (weatherResultDivViagem) {
                     weatherResultDivViagem.innerHTML = `<p class="placeholder">Erro ao processar previsão.</p>`;
                 }
@@ -479,6 +534,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     if (cityInputViagem) cityInputViagem.addEventListener('keypress', (e) => { if (e.key === 'Enter' && searchButtonViagem) searchButtonViagem.click(); });
 
+    // Listeners para filtros e destaques da previsão
     if (filtroDiasButtons) filtroDiasButtons.forEach(b => b.addEventListener('click', () => {
         filtroDiasAtivo = parseInt(b.dataset.dias);
         filtroDiasButtons.forEach(btn => btn.classList.remove('active')); b.classList.add('active');
@@ -497,18 +553,21 @@ document.addEventListener('DOMContentLoaded', () => {
         if (dadosCompletosForecastCache) exibirPrevisaoDetalhadaUI(dadosCompletosForecastCache, cidadeCache);
     });
 
-    function verificarAlertasPopupLembretes() { /* ... (seu código existente) ... */ }
+    function verificarAlertasPopupLembretes() { /* ... (seu código existente, sem alterações) ... */ }
 
     function inicializarApp() {
         try { garagem.carregarDoLocalStorage(); } 
-        catch (error) { exibirNotificacao(error.message || "Erro ao carregar.", "erro", 10000); }
-        renderizarTudoUI();
+        catch (error) { exibirNotificacao(error.message || "Erro ao carregar dados da garagem.", "erro", 10000); }
+        
+        renderizarTudoUI(); // Renderiza garagem, etc.
+
         if(tipoVeiculoSelect) tipoVeiculoSelect.dispatchEvent(new Event('change')); 
         if(window.atualizarLogInteracoesUI) window.atualizarLogInteracoesUI(); 
         
+        // Expor classes e instância da garagem globalmente (se necessário para onclicks diretos no HTML)
         window.Carro = Carro; window.CarroEsportivo = CarroEsportivo; window.Caminhao = Caminhao;
         window.Veiculo = Veiculo; window.Manutencao = Manutencao;
-        window.GaragemApp = garagem;
+        window.GaragemApp = garagem; // Garagem instance
 
         if(controlesPrevisaoDiv) controlesPrevisaoDiv.style.display = 'none';
          _renderFeatherIcons();
