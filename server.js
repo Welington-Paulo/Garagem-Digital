@@ -112,7 +112,7 @@ app.get('/api/dicas-manutencao/:tipoVeiculo', (req, res) => {
 });
 
 // Rota raiz
-app.use(express.static(path.join(__dirname, "public"))
+app.use(express.static(path.join(__dirname, "public"));
 
 app.listen(PORT, () => {
     console.log(`Servidor backend da Garagem Inteligente rodando em http://localhost:${PORT}`);
