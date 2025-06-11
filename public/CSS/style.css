@@ -606,3 +606,103 @@ footer {
     }
     .forecast-day-card { flex-basis: 150px; max-width: 160px; }
 }
+
+/* css/style.css - Adicionar estes estilos para a seção de Dicas */
+
+/* ... (todos os seus estilos existentes) ... */
+
+/* Estilos para a Seção de Dicas de Manutenção dentro da Aba Consultas */
+#secao-dicas-manutencao {
+    margin-top: 2rem; /* Espaço acima da seção de dicas */
+    padding-top: 1.5rem;
+    border-top: 1px solid var(--border-color); /* Linha separadora */
+}
+
+#secao-dicas-manutencao .filtros-dicas {
+    display: flex;
+    flex-wrap: wrap; 
+    align-items: center;
+    gap: 1rem; 
+    margin-bottom: 1.5rem; /* Espaço abaixo dos filtros */
+}
+
+#secao-dicas-manutencao .filtros-dicas label {
+    margin-bottom: 0; 
+    font-weight: 500;
+    color: var(--text-secondary);
+}
+
+#secao-dicas-manutencao .filtros-dicas select {
+    min-width: 220px; 
+    flex-grow: 1; 
+    max-width: 320px; 
+    /* Herda estilos de select global, mas pode ajustar padding/font-size se necessário */
+}
+
+/* Estilo para a lista de dicas */
+#dicas-manutencao-view ul {
+    list-style: none;
+    padding-left: 0;
+    margin-top: 0.75rem;
+}
+
+#dicas-manutencao-view li {
+    background-color: var(--bg-elements); 
+    padding: 0.8rem 1.2rem;
+    margin-bottom: 0.6rem;
+    border-radius: 8px; /* Bordas mais arredondadas para as dicas */
+    border-left: 5px solid var(--accent-primary); 
+    display: flex;
+    align-items: flex-start; 
+    gap: 0.75em;
+    font-size: 0.95rem;
+    color: var(--text-secondary);
+    box-shadow: var(--shadow-sm);
+    transition: background-color 0.2s ease;
+}
+#dicas-manutencao-view li:hover {
+    background-color: var(--bg-dark); /* Leve destaque no hover */
+}
+
+#dicas-manutencao-view li .feather { 
+    color: var(--success); 
+    flex-shrink: 0; 
+    margin-top: 0.2em; /* Ajuste vertical fino do ícone */
+    width: 1.1em; /* Ícone um pouco maior */
+    height: 1.1em;
+}
+
+#dicas-manutencao-view .placeholder {
+    color: var(--text-secondary);
+    font-style: italic;
+    padding: 1.5rem; /* Mais padding para o placeholder */
+    text-align: center;
+    background-color: var(--bg-elements);
+    border-radius: 8px;
+    border: 1px dashed var(--border-color); /* Borda tracejada para diferenciar */
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.6em;
+    font-size: 0.95rem;
+}
+#dicas-manutencao-view .placeholder.erro {
+    color: var(--error);
+    background-color: var(--error-bg);
+    border: 1px solid var(--error);
+    font-style: normal;
+}
+
+/* Placeholder geral para seções vazias (reutilizável) */
+.placeholder {
+    color: var(--text-secondary);
+    font-style: italic;
+    text-align: center;
+    padding: 1rem 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5em;
+}
+
+/* ... (Certifique-se que o resto do seu CSS, incluindo media queries, está aqui) ... */
