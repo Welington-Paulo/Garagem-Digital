@@ -3,8 +3,12 @@ import express from 'express';
 import dotenv from 'dotenv';
 import axios from 'axios';
 import path from 'path'
-import { fileURLToPath } from 'url';
 import { dirname } from 'path';
+import { fileURLToPath } from 'url';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
+
 
 dotenv.config();
 
@@ -12,7 +16,7 @@ const app = express();
 const PORT = process.env.PORT || 3001;
 const API_KEY_OPENWEATHER = process.env.OPENWEATHER_API_KEY;
 
-app.use(express.static(path.join(__dirname, 'public')))
+ app.use(express.static(path.join(__dirname, 'public')))
 
 app.use((req, res, next) => {
     res.header('Access-Control-Allow-Origin', '*'); 
