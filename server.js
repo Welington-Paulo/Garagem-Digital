@@ -12,7 +12,7 @@ const app = express();
 const PORT = process.env.PORT || 3001;
 const API_KEY_OPENWEATHER = process.env.OPENWEATHER_API_KEY;
 
-app.use(express.static(path.join(__dirname, "public")))
+app.use(express.static(path.join(__dirname, 'public')))
 
 app.use((req, res, next) => {
     res.header('Access-Control-Allow-Origin', '*'); 
