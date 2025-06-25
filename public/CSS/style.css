@@ -200,3 +200,68 @@ footer { text-align: center; padding: 1.5rem; background: var(--bg-dark); color:
     #weatherResultViagem .forecast-container { flex-wrap: nowrap; justify-content: flex-start; overflow-x: auto; }
     .forecast-day-card { flex-basis: 150px; max-width: 160px; }
 }
+
+/* css/style.css */
+
+/* ... (todos os seus estilos existentes) ... */
+
+/* Estilos para Seção de Melhorias e Edição */
+#edicao-veiculo-section, #botoesMelhorias {
+    background-color: var(--bg-elements); /* Um pouco diferente do fundo da aba */
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    padding: 1.25rem;
+    margin-top: 1.5rem; /* Espaço acima */
+}
+
+#edicao-veiculo-section h4, #botoesMelhorias h4 {
+    margin-top: 0;
+    margin-bottom: 1rem;
+    color: var(--accent-primary);
+    border-bottom: 1px solid var(--border-color);
+    padding-bottom: 0.5rem;
+}
+
+#form-editar-veiculo div {
+    margin-bottom: 0.75rem; /* Menor margem entre label/input e botão */
+}
+#form-editar-veiculo button {
+    margin-top: 0.25rem; /* Pequena margem acima do botão salvar */
+}
+
+
+.melhoria-item {
+    background-color: var(--bg-dark); /* Para destacar do container de melhorias */
+    padding: 0.75rem 1rem;
+    margin-bottom: 1rem;
+    border-radius: 6px;
+    border: 1px solid var(--border-color);
+    display: flex; /* Para alinhar o <p> e o <button> */
+    flex-direction: column; /* Empilhar p e button */
+    gap: 0.5rem; /* Espaço entre p e button */
+}
+
+.melhoria-item:last-child {
+    margin-bottom: 0;
+}
+
+.melhoria-item p {
+    margin-bottom: 0; /* Resetar margem do p */
+    color: var(--text-secondary);
+    font-size: 0.9em;
+}
+.melhoria-item p span { /* Para os spans de nível */
+    font-weight: bold;
+    color: var(--text-primary);
+}
+.melhoria-item button {
+    font-size: 0.85em;
+    padding: 0.5rem 1rem;
+    align-self: flex-start; /* Alinhar botão à esquerda */
+}
+.melhoria-item button:disabled {
+    background-color: var(--bg-elements); /* Fundo diferente para desabilitado */
+    border: 1px solid var(--border-color);
+    color: var(--text-secondary);
+    opacity: 0.7;
+}
