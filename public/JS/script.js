@@ -1,7 +1,6 @@
 // JS/script.js
 document.addEventListener('DOMContentLoaded', () => {
-    // Assumindo que as classes Garagem, Veiculo, Carro, CarroEsportivo, Caminhao, Manutencao
-    // estão definidas em seus respectivos arquivos .js e carregadas antes deste script no HTML.
+    // Assumindo que as classes Garagem, Veiculo, etc., estão carregadas.
     const garagem = new Garagem();
 
     // --- Elementos do DOM (Cache) ---
@@ -21,42 +20,45 @@ document.addEventListener('DOMContentLoaded', () => {
     const notificacaoArea = document.getElementById('notificacao-area');
 
     // Navegação por Abas e Menu Hambúrguer
-    const navButtons = document.querySelectorAll('.nav-button'); // Usado para abas E itens do menu overlay
+    const navButtons = document.querySelectorAll('.nav-button');
     const tabContents = document.querySelectorAll('.tab-content');
     const menuHamburgerBtn = document.getElementById('menu-hamburger-btn');
     const menuCloseBtn = document.getElementById('menu-close-btn');
-    const mainNav = document.getElementById('main-nav'); // O <nav> principal
+    const mainNav = document.getElementById('main-nav'); 
 
-    // Painel de Interação com Veículo Selecionado
+    // Painel de Interação
     const nomeVeiculoInteracaoSpan = document.getElementById('nome-veiculo-interacao');
     const divInfoVeiculoSelecionado = document.getElementById('informacoesVeiculoSelecionado');
     const divBotoesAcoesComuns = document.getElementById('botoesAcoesComuns');
     const divBotoesAcoesEspecificas = document.getElementById('botoesAcoesEspecificas');
     const ulLogInteracoes = document.getElementById('logInteracoesVeiculo');
 
-    // Elementos do Planejador de Viagem
+    // Planejador de Viagem
     const selectViagemVeiculo = document.getElementById('viagem-veiculo');
     const cityInputViagem = document.getElementById('cityInputViagem');
     const searchButtonViagem = document.getElementById('searchButtonViagem');
-    const weatherResultDivViagem = document.getElementById('weatherResultViagem'); // Onde a previsão será exibida
+    const weatherResultDivViagem = document.getElementById('weatherResultViagem');
     const errorMessageDivViagem = document.getElementById('errorMessageViagem');
 
-    // Controles Interativos da Previsão do Tempo
+    // Controles de Previsão do Tempo
     const controlesPrevisaoDiv = document.getElementById('controles-previsao');
     const filtroDiasButtons = document.querySelectorAll('.btn-filtro-dias');
     const destaqueChuvaCheckbox = document.getElementById('destaque-chuva');
     const destaqueTempBaixaCheckbox = document.getElementById('destaque-temp-baixa');
     const destaqueTempAltaCheckbox = document.getElementById('destaque-temp-alta');
 
-    // Estado para interatividade da previsão
+    // <-- ADICIONADO: Seletores para Dicas de Manutenção -->
+    const filtroTipoVeiculoDicaSelect = document.getElementById('filtro-tipo-veiculo-dica');
+    const btnBuscarDicas = document.getElementById('btn-buscar-dicas');
+    const dicasManutencaoViewDiv = document.getElementById('dicas-manutencao-view');
+
+    // Estado da Aplicação
     let filtroDiasAtivo = 5;
     let destacarChuva = false;
     let destacarTempBaixa = false;
     let destacarTempAlta = false;
     let dadosCompletosForecastCache = null;
     let cidadeCache = "";
-
-    // A CHAVE DA API FOI MOVIDA PARA O BACKEND (server.js e .env)
 
     function _renderFeatherIcons() {
         if (typeof feather !== 'undefined') {
@@ -77,15 +79,16 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // --- Gerenciamento de Abas (e fechar menu overlay ao clicar em um item) ---
+    // --- Gerenciamento de Abas ---
+    // <-- MODIFICADO: Adicionada lógica para carregar dicas ao mudar de aba -->
     if (navButtons && tabContents) {
         navButtons.forEach(button => {
             button.addEventListener('click', () => {
-                // Lógica para ativar a aba correta
                 navButtons.forEach(btn => btn.classList.remove('active'));
                 tabContents.forEach(content => content.classList.remove('active'));
                 button.classList.add('active');
-                const targetTab = document.getElementById(button.dataset.target);
+                const targetTabId = button.dataset.target; // Pega o ID da aba
+                const targetTab = document.getElementById(targetTabId);
                 if (targetTab) targetTab.classList.add('active');
                 
                 // Fechar o menu overlay se estiver visível (em mobile)
@@ -93,6 +96,18 @@ document.addEventListener('DOMContentLoaded', () => {
                     mainNav.setAttribute('data-visible', 'false');
                     if(menuHamburgerBtn) menuHamburgerBtn.setAttribute('aria-expanded', 'false');
                 }
+
+                // <-- LÓGICA ADICIONADA: Carregar dicas automaticamente -->
+                if (targetTabId === 'tab-consultas' && 
+                    dicasManutencaoViewDiv && 
+                    filtroTipoVeiculoDicaSelect && 
+                    filtroTipoVeiculoDicaSelect.value === 'geral' &&
+                    (dicasManutencaoViewDiv.querySelector('.placeholder') || dicasManutencaoViewDiv.innerHTML.trim() === '')) {
+                    buscarDicasManutencaoAPI().then(dicas => { 
+                        if (dicas) exibirDicasManutencaoUI(dicas, "Gerais");
+                    });
+                }
+                
                 _renderFeatherIcons();
             });
         });
@@ -132,8 +147,6 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // --- Renderização e Atualização da UI (Funções da Garagem) ---
-    // (Suas funções renderizarTudoUI, renderizarCardsVeiculosUI, etc., como antes)
-    // Vou incluir as versões que você já tinha, adaptando-as levemente para robustez
     function renderizarTudoUI() {
         renderizarCardsVeiculosUI();
         atualizarPainelInteracaoUI(); 
@@ -181,7 +194,6 @@ document.addEventListener('DOMContentLoaded', () => {
                     veiculo.atualizarDetalhesDaApi(detalhesApi); 
                     garagem.salvarNoLocalStorage(); 
                 }
-                // Re-renderiza informações do veículo, que agora podem incluir os detalhes da API
                 divInfoVeiculoSelecionado.innerHTML = veiculo.exibirInformacoes(); 
 
                 document.querySelectorAll('.acao-especifica').forEach(el => el.style.display = 'none');
@@ -225,6 +237,7 @@ document.addEventListener('DOMContentLoaded', () => {
         html += '</ul>';
         agendamentosFuturosViewDiv.innerHTML = encontrou ? html : '<p>Nenhum agendamento futuro.</p>';
     }
+
     function renderizarLembretesManutencaoView() { 
         if (!lembretesManutencaoViewDiv) return;
         const hoje = new Date(); const amanha = new Date(hoje); amanha.setDate(hoje.getDate() + 1);
@@ -246,6 +259,7 @@ document.addEventListener('DOMContentLoaded', () => {
         lembretesManutencaoViewDiv.innerHTML = encontrou ? html : '<p>Nenhum lembrete para hoje ou amanhã.</p>';
         verificarAlertasPopupLembretes();
      }
+
     function renderizarHistoricosConsolidadosView() { 
         if (!historicosConsolidadosViewDiv) return;
         let html = ''; let encontrouHistoricoGeral = false;
@@ -260,6 +274,7 @@ document.addEventListener('DOMContentLoaded', () => {
         });
         historicosConsolidadosViewDiv.innerHTML = encontrouHistoricoGeral ? html : '<p>Nenhum veículo possui histórico de manutenção.</p>';
     }
+
     function preencherSelectVeiculosViagem() { 
         if (!selectViagemVeiculo) return;
         const valAnt = selectViagemVeiculo.value;
@@ -273,6 +288,8 @@ document.addEventListener('DOMContentLoaded', () => {
         if (garagem.encontrarVeiculo(valAnt)) selectViagemVeiculo.value = valAnt;
     }
 
+    function verificarAlertasPopupLembretes() { /* Implementação omitida para brevidade */ }
+
     // --- Lógica de Adicionar Veículo ---
     if (tipoVeiculoSelect) tipoVeiculoSelect.addEventListener('change', () => { 
         if (!camposEspecificosDivs) return;
@@ -280,6 +297,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const divToShow = document.getElementById(`campos-${tipoVeiculoSelect.value.toLowerCase()}`);
         if (divToShow) divToShow.style.display = 'block';
     });
+
     if (formAddVeiculo) formAddVeiculo.addEventListener('submit', (e) => { 
         e.preventDefault();
         const fd = new FormData(formAddVeiculo);
@@ -294,14 +312,14 @@ document.addEventListener('DOMContentLoaded', () => {
 
         let novoVeiculo;
         try {
-            const velMaxTurboInput = fd.get('velocidade-maxima-turbo'); // Nome do seu HTML
-            const numPortasInput = fd.get('numero-portas'); // Nome do seu HTML
-            const capCargaInput = fd.get('capacidade-carga'); // Nome do seu HTML
+            const velMaxTurboInput = fd.get('velocidade-maxima-turbo'); 
+            const numPortasInput = fd.get('numero-portas'); 
+            const capCargaInput = fd.get('capacidade-carga'); 
 
             if (tipo === 'Carro') novoVeiculo = new Carro(marca, modelo, ano, placa, cor, [], parseInt(numPortasInput));
             else if (tipo === 'CarroEsportivo') novoVeiculo = new CarroEsportivo(marca, modelo, ano, placa, cor, [], parseInt(velMaxTurboInput));
             else if (tipo === 'Caminhao') novoVeiculo = new Caminhao(marca, modelo, ano, placa, cor, [], parseFloat(capCargaInput));
-            else novoVeiculo = new Veiculo(marca, modelo, ano, placa, cor); // Veículo genérico
+            else novoVeiculo = new Veiculo(marca, modelo, ano, placa, cor); 
             
             if (garagem.adicionarVeiculo(novoVeiculo)) {
                 garagem.salvarNoLocalStorage(); renderizarTudoUI();
@@ -367,6 +385,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
+    // --- Funções Globais para o HTML (onclick) ---
     window.exibirHistorico = (placa) => { 
         const divHist = document.getElementById(`historico-${placa}`);
         if (divHist) divHist.style.display = divHist.style.display === 'none' ? 'block' : 'none';
@@ -380,7 +399,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     };
     
-    // --- Lógica do Planejador de Viagem (CHAMANDO O BACKEND) ---
+    // --- Lógica do Planejador de Viagem (Backend) ---
     async function fetchWeatherFromBackend(city, type = 'forecast') {
         if (!cityInputViagem || !weatherResultDivViagem || !searchButtonViagem || !errorMessageDivViagem) {
             console.error("Elementos do DOM do planejador de viagem não encontrados."); return null;
@@ -391,7 +410,7 @@ document.addEventListener('DOMContentLoaded', () => {
             weatherResultDivViagem.innerHTML = '<p class="placeholder">Digite uma cidade.</p>';
             return null;
         }
-        const backendPort = 3001; // Certifique-se que esta é a porta do seu server.js
+        const backendPort = 3001; 
         const backendApiUrl = `http://localhost:${backendPort}/api/${type}/${encodeURIComponent(city)}`;
 
         weatherResultDivViagem.innerHTML = `<p class="placeholder"><i data-feather="loader" class="spin"></i> Buscando ${type === 'forecast' ? 'previsão detalhada' : 'clima atual'} para ${city}...</p>`;
@@ -441,15 +460,10 @@ document.addEventListener('DOMContentLoaded', () => {
             let idxRep = Math.floor(diaInfo.previsoesHorarias.length / 2);
             const meioDiaIdx = diaInfo.previsoesHorarias.findIndex(p => p.hora === "12:00" || p.hora === "15:00");
             if (meioDiaIdx !== -1) idxRep = meioDiaIdx;
-            // Garante que idxRep não seja undefined se previsoesHorarias estiver vazio (embora não deva acontecer)
             const previsaoRepresentativa = diaInfo.previsoesHorarias[idxRep] || diaInfo.previsoesHorarias[0] || {descricao: 'N/A', icone: '01d'};
-
             return {
-                dataFormatada: diaInfo.dataFormatada, 
-                temp_min: Math.min(...diaInfo.temperaturas),
-                temp_max: Math.max(...diaInfo.temperaturas), 
-                descricaoGeral: previsaoRepresentativa.descricao,
-                iconeGeral: previsaoRepresentativa.icone, 
+                dataFormatada: diaInfo.dataFormatada, temp_min: Math.min(...diaInfo.temperaturas), temp_max: Math.max(...diaInfo.temperaturas), 
+                descricaoGeral: previsaoRepresentativa.descricao, iconeGeral: previsaoRepresentativa.icone, 
                 previsoesHorarias: diaInfo.previsoesHorarias,
                 temChuva: diaInfo.descricoes.some(d => d.includes('chuva') || d.includes('rain') || d.includes('drizzle') || d.includes('tempestade'))
             };
@@ -457,44 +471,33 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function exibirPrevisaoDetalhadaUI(previsaoProcessada, nomeCidadeApi) {
-        const resultadoDiv = weatherResultDivViagem || document.getElementById('previsao-tempo-resultado');
-        if (!resultadoDiv) return;
-        resultadoDiv.innerHTML = '';
+        if (!weatherResultDivViagem) return;
+        weatherResultDivViagem.innerHTML = '';
         if (!previsaoProcessada || previsaoProcessada.length === 0) {
-            resultadoDiv.innerHTML = `<p><i data-feather="alert-triangle" class="feather-small"></i> Sem previsão para ${nomeCidadeApi}.</p>`;
+            weatherResultDivViagem.innerHTML = `<p><i data-feather="alert-triangle" class="feather-small"></i> Sem previsão para ${nomeCidadeApi}.</p>`;
             if(controlesPrevisaoDiv) controlesPrevisaoDiv.style.display = 'none';
             _renderFeatherIcons(); return;
         }
-        
-        if(controlesPrevisaoDiv) controlesPrevisaoDiv.style.display = 'block'; // Mostra controles de filtro/destaque
-
+        if(controlesPrevisaoDiv) controlesPrevisaoDiv.style.display = 'block';
         let html = `<h3><i data-feather="calendar"></i> Previsão para ${nomeCidadeApi}</h3><div class="forecast-container">`;
-        let diasParaExibir = previsaoProcessada;
-        // Aplica filtro de dias
-        if (filtroDiasAtivo === 1) diasParaExibir = previsaoProcessada.slice(0, 1);
-        else if (filtroDiasAtivo === 2) diasParaExibir = previsaoProcessada.slice(0, 2);
-        else if (filtroDiasAtivo === 3) diasParaExibir = previsaoProcessada.slice(0, 3);
-        else diasParaExibir = previsaoProcessada.slice(0, 5); // Default 5 dias
-
+        let diasParaExibir = previsaoProcessada.slice(0, filtroDiasAtivo);
+        
         diasParaExibir.forEach((dia, index) => {
             let classes = "forecast-day-card";
-            const tempMinNum = parseFloat(dia.temp_min);
-            const tempMaxNum = parseFloat(dia.temp_max);
             if (destacarChuva && dia.temChuva) classes += " destaque-chuva";
-            if (destacarTempBaixa && destaqueTempBaixaCheckbox && tempMinNum < parseFloat(destaqueTempBaixaCheckbox.dataset.tempLimite)) classes += " destaque-temp-baixa";
-            if (destacarTempAlta && destaqueTempAltaCheckbox && tempMaxNum > parseFloat(destaqueTempAltaCheckbox.dataset.tempLimite)) classes += " destaque-temp-alta";
+            if (destacarTempBaixa && destaqueTempBaixaCheckbox && dia.temp_min < parseFloat(destaqueTempBaixaCheckbox.dataset.tempLimite)) classes += " destaque-temp-baixa";
+            if (destacarTempAlta && destaqueTempAltaCheckbox && dia.temp_max > parseFloat(destaqueTempAltaCheckbox.dataset.tempLimite)) classes += " destaque-temp-alta";
             html += `<div class="${classes}" data-dia-index="${index}"><h4>${dia.dataFormatada}</h4><img src="https://openweathermap.org/img/wn/${dia.iconeGeral}@2x.png" title="${dia.descricaoGeral}"><p class="temp-range"><span class="temp-max">${dia.temp_max.toFixed(0)}°C</span> / <span class="temp-min">${dia.temp_min.toFixed(0)}°C</span></p><p class="description">${dia.descricaoGeral}</p><div class="detalhes-horarios" style="display: none;"></div></div>`;
         });
         html += '</div>';
-        resultadoDiv.innerHTML = html;
+        weatherResultDivViagem.innerHTML = html;
         _renderFeatherIcons();
-        adicionarListenersCardsPrevisao(diasParaExibir); // Passar os dias que foram efetivamente renderizados
+        adicionarListenersCardsPrevisao(diasParaExibir);
     }
 
     function adicionarListenersCardsPrevisao(diasExibidos) {
-        const resultadoDiv = weatherResultDivViagem || document.getElementById('previsao-tempo-resultado');
-        if (!resultadoDiv) return;
-        resultadoDiv.querySelectorAll('.forecast-day-card').forEach(card => {
+        if (!weatherResultDivViagem) return;
+        weatherResultDivViagem.querySelectorAll('.forecast-day-card').forEach(card => {
             card.addEventListener('click', () => {
                 const detalhesDiv = card.querySelector('.detalhes-horarios');
                 if(!detalhesDiv) return;
@@ -516,7 +519,6 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
     
-    // Event Listener para o botão "Verificar Clima"
     if (searchButtonViagem) {
         searchButtonViagem.addEventListener('click', async () => {
             const city = cityInputViagem ? cityInputViagem.value.trim() : null;
@@ -534,7 +536,6 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     if (cityInputViagem) cityInputViagem.addEventListener('keypress', (e) => { if (e.key === 'Enter' && searchButtonViagem) searchButtonViagem.click(); });
 
-    // Listeners para filtros e destaques da previsão
     if (filtroDiasButtons) filtroDiasButtons.forEach(b => b.addEventListener('click', () => {
         filtroDiasAtivo = parseInt(b.dataset.dias);
         filtroDiasButtons.forEach(btn => btn.classList.remove('active')); b.classList.add('active');
@@ -553,24 +554,92 @@ document.addEventListener('DOMContentLoaded', () => {
         if (dadosCompletosForecastCache) exibirPrevisaoDetalhadaUI(dadosCompletosForecastCache, cidadeCache);
     });
 
-    function verificarAlertasPopupLembretes() { /* ... (seu código existente, sem alterações) ... */ }
 
+    // <-- ADICIONADO: NOVAS FUNÇÕES E LISTENERS PARA DICAS DE MANUTENÇÃO -->
+    async function buscarDicasManutencaoAPI(tipoVeiculo = null) {
+        const backendPort = 3001;
+        let url = `http://localhost:${backendPort}/api/dicas-manutencao`;
+        if (tipoVeiculo && tipoVeiculo.toLowerCase() !== "geral") {
+            url += `/${encodeURIComponent(tipoVeiculo)}`;
+        }
+
+        if (dicasManutencaoViewDiv) {
+            dicasManutencaoViewDiv.innerHTML = `<p class="placeholder"><i data-feather="loader" class="spin"></i> Carregando dicas...</p>`;
+            _renderFeatherIcons();
+        }
+
+        try {
+            const response = await fetch(url);
+            if (!response.ok) {
+                const errorData = await response.json().catch(() => ({}));
+                throw new Error(errorData.error || `Erro ${response.status} ao buscar dicas.`);
+            }
+            return await response.json();
+        } catch (error) {
+            console.error("Erro ao buscar dicas de manutenção:", error);
+            if (dicasManutencaoViewDiv) {
+                dicasManutencaoViewDiv.innerHTML = `<p class="placeholder erro"><i data-feather="alert-triangle"></i> Falha: ${error.message}</p>`;
+                _renderFeatherIcons();
+            }
+            return null;
+        }
+    }
+
+    function exibirDicasManutencaoUI(dicas, tituloTipo = "Gerais") {
+        if (!dicasManutencaoViewDiv) return;
+
+        if (!dicas || dicas.length === 0) {
+            dicasManutencaoViewDiv.innerHTML = `<p>Nenhuma dica encontrada para "${tituloTipo}".</p>`;
+            return;
+        }
+
+        let tipoFormatado = tituloTipo.charAt(0).toUpperCase() + tituloTipo.slice(1);
+        if (tituloTipo.toLowerCase() === "geral") tipoFormatado = "Gerais";
+
+        let html = `<h4>Dicas de Manutenção (${tipoFormatado}):</h4><ul>`;
+        dicas.forEach(item => {
+            html += `<li><i data-feather="check-circle" class="feather-small" style="color:var(--success);"></i> ${item.dica}</li>`;
+        });
+        html += `</ul>`;
+        dicasManutencaoViewDiv.innerHTML = html;
+        _renderFeatherIcons();
+    }
+
+    if (btnBuscarDicas && filtroTipoVeiculoDicaSelect) {
+        btnBuscarDicas.addEventListener('click', async () => {
+            const tipoSelecionado = filtroTipoVeiculoDicaSelect.value;
+            const dicas = await buscarDicasManutencaoAPI(tipoSelecionado);
+            if (dicas) {
+                exibirDicasManutencaoUI(dicas, tipoSelecionado);
+            }
+        });
+    }
+
+    // --- Inicialização da Aplicação ---
+    // <-- MODIFICADO: Adicionada lógica para carregar dicas ao iniciar o app -->
     function inicializarApp() {
         try { garagem.carregarDoLocalStorage(); } 
-        catch (error) { exibirNotificacao(error.message || "Erro ao carregar dados da garagem.", "erro", 10000); }
+        catch (error) { exibirNotificacao(error.message || "Erro ao carregar dados.", "erro", 10000); }
         
-        renderizarTudoUI(); // Renderiza garagem, etc.
+        renderizarTudoUI();
 
         if(tipoVeiculoSelect) tipoVeiculoSelect.dispatchEvent(new Event('change')); 
         if(window.atualizarLogInteracoesUI) window.atualizarLogInteracoesUI(); 
         
-        // Expor classes e instância da garagem globalmente (se necessário para onclicks diretos no HTML)
         window.Carro = Carro; window.CarroEsportivo = CarroEsportivo; window.Caminhao = Caminhao;
         window.Veiculo = Veiculo; window.Manutencao = Manutencao;
-        window.GaragemApp = garagem; // Garagem instance
+        window.GaragemApp = garagem;
 
         if(controlesPrevisaoDiv) controlesPrevisaoDiv.style.display = 'none';
-         _renderFeatherIcons();
+
+        // <-- LÓGICA ADICIONADA: Carregar dicas gerais ao iniciar, se a aba for a correta -->
+        const abaConsultasAtiva = document.querySelector('#tab-consultas.active');
+        if (abaConsultasAtiva && dicasManutencaoViewDiv && filtroTipoVeiculoDicaSelect && filtroTipoVeiculoDicaSelect.value === 'geral') {
+             buscarDicasManutencaoAPI().then(dicas => {
+                if (dicas) exibirDicasManutencaoUI(dicas, "Gerais");
+             });
+        }
+        _renderFeatherIcons();
     }
 
     inicializarApp();
