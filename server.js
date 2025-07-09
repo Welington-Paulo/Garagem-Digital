@@ -2,17 +2,64 @@
 import express from 'express';
 import dotenv from 'dotenv';
 import axios from 'axios';
-import path from 'path'
-import { fileURLToPath } from 'url';
+import path from 'path';
 import { dirname } from 'path';
+import { fileURLToPath } from 'url';
+import mongoose from 'mongoose'; // <-- IMPORTADO
 
+// Obter __dirname e __filename em projetos ES Module
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
+
+// Carrega variáveis de ambiente do arquivo .env
 dotenv.config();
 
 const app = express();
 const PORT = process.env.PORT || 3001;
-const API_KEY = process.env.OPENWEATHER_API_KEY;
+const API_KEY_OPENWEATHER = process.env.OPENWEATHER_API_KEY;
+const MONGO_URI = process.env.MONGO_URI; // <-- NOVA VARIÁVEL
 
-// Middleware CORS
+// ---- Conexão Robusta com o MongoDB Atlas via Mongoose ----
+async function connectToDatabase() {
+    // Evita múltiplas tentativas de conexão se já estiver conectado ou conectando
+    if (mongoose.connection.readyState >= 1) {
+        console.log("=> Mongoose já está conectado.");
+        return;
+    }
+
+    if (!MONGO_URI) {
+        console.error("❌ ERRO FATAL: A variável de ambiente MONGO_URI não está definida no arquivo .env!");
+        process.exit(1); // Encerra a aplicação se a URI do banco de dados não for encontrada
+    }
+
+    try {
+        console.log("🔌 Tentando conectar ao MongoDB Atlas...");
+        // Opções de conexão são geralmente gerenciadas pelo driver nas versões recentes do Mongoose
+        await mongoose.connect(MONGO_URI);
+        
+        console.log("✅ Conectado ao MongoDB Atlas com sucesso!");
+
+        // Opcional: Ouvir eventos de conexão para mais logs de diagnóstico
+        mongoose.connection.on('error', err => {
+            console.error("❌ Mongoose erro de conexão subsequente:", err);
+        });
+        mongoose.connection.on('disconnected', () => {
+            console.warn("⚠️ Mongoose foi desconectado.");
+        });
+
+    } catch (err) {
+        console.error("❌ ERRO FATAL ao conectar ao MongoDB na inicialização:", err.message);
+        console.error("Verifique sua MONGO_URI (no .env local e nas variáveis de ambiente do Render), acesso de rede no Atlas, e credenciais do usuário.");
+        process.exit(1); // Encerra a aplicação se a conexão inicial falhar
+    }
+}
+// --------------------------------------------------------
+
+// Middleware para servir arquivos estáticos da pasta 'public'
+// Garante que seu index.html, css, e js do cliente sejam servidos a partir do backend.
+app.use(express.static(path.join(__dirname, 'public')));
+
+// Middleware CORS - Permite que seu frontend chame a API do backend
 app.use((req, res, next) => {
     res.header('Access-Control-Allow-Origin', '*'); 
     res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization');
@@ -23,104 +70,72 @@ app.use((req, res, next) => {
     next();
 });
 
-// --- DADOS SIMULADOS PARA OS NOVOS ENDPOINTS ---
-const dicasManutencaoGerais = [
-    { id: 1, dica: "Verifique o nível do óleo do motor regularmente (a cada 1.000 km ou mensalmente)." },
-    { id: 2, dica: "Calibre os pneus semanalmente, incluindo o estepe, conforme a pressão indicada no manual." },
-    { id: 3, dica: "Confira o nível do fluido de arrefecimento (água do radiador) com o motor frio." },
-    { id: 4, dica: "Verifique o estado e o nível do fluido de freio." },
-    { id: 5, dica: "Mantenha os faróis, lanternas e setas limpos e funcionando corretamente." }
+
+// === ARRAYS DE DADOS SIMULADOS (MANTIDOS POR ENQUANTO) ===
+const veiculosDestaque = [
+    { id: "vd001", modelo: "Ford Maverick Híbrido", ano: 2024, destaque: "Performance sustentável e design inovador.", imagemUrl: "images/maverick_hybrid.jpg" },
+    { id: "vd002", modelo: "VW ID.Buzz (Kombi Elétrica)", ano: 2025, destaque: "A nostalgia encontra o futuro da mobilidade elétrica.", imagemUrl: "images/id_buzz.jpg" },
+    { id: "vd003", modelo: "Cybertruck Tesla", ano: 2024, destaque: "Resistência e tecnologia de ponta com design futurista.", imagemUrl: "images/cybertruck.jpg" }
+];
+const servicosGaragem = [
+    { id: "svc001", nome: "Diagnóstico Eletrônico Avançado", descricao: "Utilizamos scanners de última geração para identificar precisamente falhas eletrônicas e de sistema.", precoEstimado: "A partir de R$ 150,00" },
+    { id: "svc002", nome: "Revisão Completa Premium", descricao: "Checagem de mais de 50 itens, incluindo motor, suspensão, freios, fluidos e filtros.", precoEstimado: "A partir de R$ 450,00" },
+    { id: "svc003", nome: "Manutenção de Veículos Elétricos", descricao: "Serviço especializado em baterias, motores elétricos e sistemas de recarga.", precoEstimado: "Consultar" }
+];
+const dicasManutencao = [
+    { id: "d001", titulo: "Calibragem dos Pneus (Geral)", dica: "Mantenha a calibragem correta semanalmente para segurança e economia.", tipoAplicavel: ["geral", "carro", "moto", "caminhao"] },
+    { id: "d002", titulo: "Nível do Óleo do Motor (Geral)", dica: "Verifique o nível do óleo com o motor frio e em local plano.", tipoAplicavel: ["geral", "carro", "moto", "caminhao"] },
+    { id: "d004", titulo: "Corrente da Moto (Motos)", dica: "Mantenha a corrente da sua moto limpa, lubrificada e com a tensão correta.", tipoAplicavel: ["moto"] },
+    { id: "d006", titulo: "Filtro de Ar do Motor (Carro/Caminhão)", dica: "Um filtro de ar sujo pode aumentar o consumo de combustível. Verifique e troque.", tipoAplicavel: ["carro", "caminhao"] },
 ];
 
-const dicasPorTipo = {
-    carro: [
-        { id: 10, tipo: "carro", dica: "Faça o rodízio dos pneus a cada 10.000 km para um desgaste uniforme." },
-        { id: 11, tipo: "carro", dica: "Verifique as palhetas do limpador de para-brisa a cada 6 meses." },
-        { id: 12, tipo: "carro", dica: "Substitua o filtro de ar do motor conforme recomendação do fabricante." }
-    ],
-    moto: [ 
-        { id: 20, tipo: "moto", dica: "Lubrifique e ajuste a tensão da corrente de transmissão regularmente." },
-        { id: 21, tipo: "moto", dica: "Verifique o estado dos pneus e a pressão com mais frequência." }
-    ],
-    caminhao: [
-        { id: 30, tipo: "caminhao", dica: "Verifique diariamente o sistema de freios pneumáticos e drene os reservatórios de ar." },
-        { id: 31, tipo: "caminhao", dica: "Confira o aperto das porcas das rodas (torque) periodicamente." },
-        { id: 32, tipo: "caminhao", dica: "Inspecione o tacógrafo e certifique-se de seu funcionamento correto." }
-    ]
-};
-// ---------------------------------------------
+// === ENDPOINTS DE API ===
 
-// Endpoint de Previsão do Tempo Detalhada (Forecast)
+// Rota de Status da API (NOVA E MUITO ÚTIL)
+app.get('/api/status', (req, res) => {
+    res.json({
+        status: "OK",
+        timestamp: new Date().toISOString(),
+        mongodb_connection: mongoose.connections[0].readyState === 1 ? "Conectado" : "Desconectado"
+    });
+});
+
+// Endpoints do Arsenal de Dados
+app.get('/api/garagem/veiculos-destaque', (req, res) => res.json(veiculosDestaque));
+app.get('/api/garagem/servicos-oferecidos', (req, res) => res.json(servicosGaragem));
+app.get('/api/garagem/dicas-manutencao', (req, res) => res.json(dicasManutencao));
+
+// Endpoints da OpenWeatherMap (Proxy)
 app.get('/api/forecast/:city', async (req, res) => {
     const { city } = req.params;
-    if (!API_KEY) return res.status(500).json({ error: 'Chave API ausente no servidor (forecast).' });
-    if (!city) return res.status(400).json({ error: 'Cidade obrigatória (forecast).' });
-    const openWeatherUrl = `https://api.openweathermap.org/data/2.5/forecast?q=${encodeURIComponent(city)}&appid=${API_KEY}&units=metric&lang=pt_br`;
+    if (!API_KEY_OPENWEATHER) return res.status(500).json({ error: 'Chave API OpenWeatherMap não configurada.' });
+    if (!city) return res.status(400).json({ error: 'Nome da cidade é obrigatório.' });
+
+    const url = `https://api.openweathermap.org/data/2.5/forecast?q=${encodeURIComponent(city)}&appid=${API_KEY_OPENWEATHER}&units=metric&lang=pt_br`;
     try {
-        console.log(`[BACKEND] /api/forecast/${city} - Buscando...`);
-        const response = await axios.get(openWeatherUrl);
-        console.log(`[BACKEND] /api/forecast/${city} - Sucesso.`);
+        const response = await axios.get(url);
         res.json(response.data);
     } catch (error) {
         const status = error.response?.status || 500;
-        const message = error.response?.data?.message || 'Erro no servidor ao buscar previsão (forecast).';
-        console.error(`[BACKEND] /api/forecast/${city} - Erro ${status}: ${message}`);
+        const message = error.response?.data?.message || 'Erro ao buscar previsão detalhada.';
         res.status(status).json({ error: message });
     }
 });
 
-// Endpoint de Clima Atual
-app.get('/api/weather/:city', async (req, res) => {
-    const { city } = req.params;
-    if (!API_KEY) return res.status(500).json({ error: 'Chave API ausente no servidor (weather).' });
-    if (!city) return res.status(400).json({ error: 'Cidade obrigatória (weather).' });
-    const openWeatherUrl = `https://api.openweathermap.org/data/2.5/weather?q=${encodeURIComponent(city)}&appid=${API_KEY}&units=metric&lang=pt_br`;
-    try {
-        console.log(`[BACKEND] /api/weather/${city} - Buscando...`);
-        const response = await axios.get(openWeatherUrl);
-        console.log(`[BACKEND] /api/weather/${city} - Sucesso.`);
-        res.json(response.data);
-    } catch (error) {
-        const status = error.response?.status || 500;
-        const message = error.response?.data?.message || 'Erro no servidor ao buscar clima (weather).';
-        console.error(`[BACKEND] /api/weather/${city} - Erro ${status}: ${message}`);
-        res.status(status).json({ error: message });
-    }
-});
 
-// GET /api/dicas-manutencao (Retorna todas as dicas gerais)
-app.get('/api/dicas-manutencao', (req, res) => {
-    console.log("[BACKEND] Requisição recebida para /api/dicas-manutencao (gerais)");
-    res.json(dicasManutencaoGerais);
-});
+// Função principal para iniciar o servidor
+async function startServer() {
+    // 1. Conectar ao banco de dados
+    await connectToDatabase();
 
-// GET /api/dicas-manutencao/:tipoVeiculo (Retorna dicas para um tipo específico ou gerais como fallback)
-app.get('/api/dicas-manutencao/:tipoVeiculo', (req, res) => {
-    const { tipoVeiculo } = req.params;
-    const tipoNormalizado = tipoVeiculo.toLowerCase();
-    console.log(`[BACKEND] Requisição recebida para /api/dicas-manutencao/${tipoNormalizado}`);
-    
-    const dicasEspecificas = dicasPorTipo[tipoNormalizado];
+    // 2. Iniciar o servidor Express para ouvir requisições
+    app.listen(PORT, () => {
+        console.log(`Servidor backend da Garagem Inteligente rodando na porta ${PORT}`);
+        if (!API_KEY_OPENWEATHER) {
+            console.warn('[BACKEND] ATENÇÃO: OPENWEATHER_API_KEY não está definida no .env!');
+        }
+    });
+}
 
-    if (dicasEspecificas && dicasEspecificas.length > 0) {
-        console.log(`[BACKEND] Enviando dicas específicas para ${tipoNormalizado}.`);
-        res.json(dicasEspecificas);
-    } else {
-        console.log(`[BACKEND] Nenhuma dica específica para ${tipoNormalizado}, enviando dicas gerais como fallback.`);
-        res.json(dicasManutencaoGerais); 
-    }
-});
-
-// Rota raiz
-app.get('/', (req, res) => {
-    res.send('Servidor Backend da Garagem Inteligente está operacional!');
-});
-
-app.listen(PORT, () => {
-    console.log(`Servidor backend da Garagem Inteligente rodando em http://localhost:${PORT}`);
-    if (!API_KEY) {
-        console.warn('[BACKEND] ATENÇÃO: OPENWEATHER_API_KEY não foi carregada do .env. As chamadas de clima falharão.');
-    } else {
-        console.log('[BACKEND] Chave da API OpenWeatherMap carregada.');
-    }
-});
+// Inicia todo o processo
+startServer();
