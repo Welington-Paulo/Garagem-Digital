@@ -188,49 +188,40 @@ class Veiculo {
     }
 
     static fromJSON(json) {
-        let veiculo;
-        switch (json._class) {
-            case 'Carro':
-                veiculo = new Carro(json.marca, json.modelo, json.ano, json.placa, json.cor, [], json.numeroPortas);
-                break;
-            case 'CarroEsportivo':
-                veiculo = new CarroEsportivo(json.marca, json.modelo, json.ano, json.placa, json.cor, [], json.velocidadeMaximaTurbo);
-                if (json.hasOwnProperty('turboAtivado')) veiculo.turboAtivado = json.turboAtivado;
-                break;
-            case 'Caminhao':
-                veiculo = new Caminhao(json.marca, json.modelo, json.ano, json.placa, json.cor, [], json.capacidadeCarga);
-                if (json.hasOwnProperty('cargaAtual')) veiculo.cargaAtual = json.cargaAtual;
-                break;
-            case 'Veiculo':
-                 veiculo = new Veiculo(json.marca, json.modelo, json.ano, json.placa, json.cor);
-                 break;
-            default:
-                console.error("Veiculo.fromJSON: Tipo desconhecido:", json._class, json);
-                throw new Error(`Tipo de veículo desconhecido para deserialização: ${json._class}`);
-        }
-        
-        veiculo.status = json.status || "Disponível";
-        veiculo.ligado = json.ligado === true; 
-        veiculo.velocidade = json.velocidade || 0;
-        
-        // Atributos da API simulada (com defaults)
-        veiculo.modeloCompleto = json.modeloCompleto || veiculo.modelo;
-        veiculo.tipoCombustivel = json.tipoCombustivel || "Não especificado";
-        veiculo.consumoCidade = json.consumoCidade || "N/A";
-        veiculo.consumoEstrada = json.consumoEstrada || "N/A";
-        veiculo.tanqueCombustivelL = json.tanqueCombustivelL || null;
-        veiculo.valorFIPE = json.valorFIPE || "N/A";
-        veiculo.recalls = json.recalls || [];
-        veiculo.dicaManutencao = json.dicaManutencao || "";
-        veiculo.recursosAdicionais = json.recursosAdicionais || [];
-        veiculo.autonomiaEstimadaKm = json.autonomiaEstimadaKm || null; 
-
-        if (json.historicoManutencao && Array.isArray(json.historicoManutencao)) {
-            veiculo.historicoManutencao = json.historicoManutencao.map(mJson => Manutencao.fromJSON(mJson));
-            veiculo.historicoManutencao.sort((a, b) => new Date(b.data) - new Date(a.data));
-        } else {
-            veiculo.historicoManutencao = [];
-        }
-        return veiculo;
+    let veiculo;
+    
+    // ---- INÍCIO DA SOLUÇÃO ----
+    // Mude de 'switch (json._class)' para 'switch (json.tipoVeiculo)'
+    switch (json.tipoVeiculo) { 
+    // ---- FIM DA SOLUÇÃO ----
+        case 'Carro':
+            // Use os detalhes do objeto 'detalhes' que vem do banco de dados
+            veiculo = new Carro(json.marca, json.modelo, json.ano, json.placa, json.cor, [], json.detalhes?.numeroPortas);
+            break;
+        case 'CarroEsportivo':
+            veiculo = new CarroEsportivo(json.marca, json.modelo, json.ano, json.placa, json.cor, [], json.detalhes?.velocidadeMaximaTurbo);
+            if (json.hasOwnProperty('turboAtivado')) veiculo.turboAtivado = json.turboAtivado;
+            break;
+        case 'Caminhao':
+            veiculo = new Caminhao(json.marca, json.modelo, json.ano, json.placa, json.cor, [], json.detalhes?.capacidadeCarga);
+            if (json.hasOwnProperty('cargaAtual')) veiculo.cargaAtual = json.cargaAtual;
+            break;
+        case 'Veiculo':
+             veiculo = new Veiculo(json.marca, json.modelo, json.ano, json.placa, json.cor);
+             break;
+        default:
+            console.error("Veiculo.fromJSON: Tipo de veículo desconhecido:", json.tipoVeiculo, json);
+            // Crie um Veiculo genérico como fallback para não quebrar a aplicação
+            veiculo = new Veiculo(json.marca, json.modelo, json.ano, json.placa, json.cor);
+            break;
     }
+    
+    // ... (o resto da função para preencher os outros campos permanece o mesmo)
+    veiculo.status = json.status || "Disponível";
+    veiculo.ligado = json.ligado === true; 
+    veiculo.velocidade = json.velocidade || 0;
+    // ...
+    
+    return veiculo;
 }
+};
