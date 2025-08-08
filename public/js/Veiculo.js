@@ -1,9 +1,22 @@
 // JS/Veiculo.js
+
+// Certifique-se de que as classes Manutencao, Carro, CarroEsportivo e Caminhao
+// estejam disponíveis antes desta classe ser usada.
+
 class Veiculo {
+    /**
+     * @param {string} marca A marca do veículo.
+     * @param {string} modelo O modelo do veículo.
+     * @param {number} ano O ano de fabricação.
+     * @param {string} placa A placa do veículo.
+     * @param {string} [cor="Branco"] A cor do veículo.
+     * @param {Array<Manutencao>} [historicoManutencao=[]] O histórico de manutenções.
+     */
     constructor(marca, modelo, ano, placa, cor = "Branco", historicoManutencao = []) {
         if (!marca || !modelo || !ano || !placa) {
             throw new Error("Marca, modelo, ano e placa são obrigatórios para criar um veículo.");
         }
+        this.id = null; // **CRUCIAL**: Para armazenar o _id do MongoDB
         this.marca = marca;
         this.modelo = modelo;
         this.ano = parseInt(ano);
@@ -19,18 +32,19 @@ class Veiculo {
         this.consumoCidade = "N/A";
         this.consumoEstrada = "N/A";
         this.tanqueCombustivelL = null;
-        this.valorFIPE = "N/A"; // Novo
-        this.recalls = []; // Novo
-        this.dicaManutencao = ""; // Novo
+        this.valorFIPE = "N/A";
+        this.recalls = [];
+        this.dicaManutencao = "";
         this.recursosAdicionais = [];
         this.autonomiaEstimadaKm = null;
 
+        // Garante que o histórico de manutenção seja composto por instâncias de Manutencao
         this.historicoManutencao = historicoManutencao.map(m =>
             m instanceof Manutencao ? m : Manutencao.fromJSON(m)
         );
     }
 
-    ligar() { /* ... (como antes) ... */ 
+    ligar() {
         if (!this.ligado) {
             this.ligado = true;
             this.status = "Ligado"; 
@@ -38,7 +52,8 @@ class Veiculo {
         }
         return `${this.modelo} já está ligado.`;
     }
-    desligar() { /* ... (como antes) ... */ 
+
+    desligar() {
         if (this.ligado) {
             if (this.velocidade > 0) {
                 return `${this.modelo} não pode ser desligado em movimento! (Vel: ${this.velocidade} km/h).`;
@@ -50,7 +65,8 @@ class Veiculo {
         }
         return `${this.modelo} já está desligado.`;
     }
-    acelerar(incremento = 10) { /* ... (como antes) ... */
+
+    acelerar(incremento = 10) {
         if (!this.ligado) {
             return `${this.modelo} precisa estar ligado para acelerar.`;
         }
@@ -63,7 +79,8 @@ class Veiculo {
         this.status = this.velocidade > 0 ? "Em Movimento" : "Ligado";
         return `${this.modelo} ${this.velocidade === velMaxima ? 'atingiu vel. máx. de' : 'acelerou para'} ${this.velocidade} km/h.`;
     }
-    frear(decremento = 10) { /* ... (como antes) ... */ 
+
+    frear(decremento = 10) {
         if (this.velocidade - decremento >= 0) {
             this.velocidade -= decremento;
         } else {
@@ -72,20 +89,25 @@ class Veiculo {
         this.status = this.velocidade > 0 ? "Em Movimento" : (this.ligado ? "Ligado" : "Disponível");
         return `${this.modelo} ${this.velocidade === 0 ? 'parou' : 'freou para ' + this.velocidade + ' km/h'}.`;
     }
-    buzinar() { /* ... (como antes) ... */
+
+    buzinar() {
         return `${this.constructor.name} ${this.modelo} buzina: Beep! Beep!`;
-     }
-    getVelocidadeMaximaPermitida() { /* ... (como antes) ... */
-        return 180;
-     }
-    adicionarManutencao(manutencao) { /* ... (como antes) ... */ 
+    }
+
+    getVelocidadeMaximaPermitida() {
+        return 180; // Velocidade padrão para um veículo genérico
+    }
+
+    adicionarManutencao(manutencao) {
         if (!(manutencao instanceof Manutencao)) {
             throw new Error("Objeto de manutenção inválido.");
         }
         this.historicoManutencao.push(manutencao);
+        // Ordena por data, da mais recente para a mais antiga
         this.historicoManutencao.sort((a, b) => new Date(b.data) - new Date(a.data));
     }
-    formatarHistoricoManutencao() { /* ... (como antes) ... */
+
+    formatarHistoricoManutencao() {
         if (!this.historicoManutencao || this.historicoManutencao.length === 0) {
             return "<li>Nenhuma manutenção registrada.</li>";
         }
@@ -100,7 +122,7 @@ class Veiculo {
 
     exibirInformacoes() {
         let detalhesApiHtml = ``;
-        // Verifica se há *qualquer* informação da API para exibir a seção de detalhes adicionais
+        // Verifica se há qualquer informação da API para exibir a seção de detalhes adicionais
         if (this.tipoCombustivel !== "Não especificado" || 
             this.recursosAdicionais.length > 0 || 
             this.valorFIPE !== "N/A" || 
@@ -161,67 +183,65 @@ class Veiculo {
         } else { this.autonomiaEstimadaKm = null; }
     }
 
+    // Método para serialização (útil se você ainda usar localStorage como um backup)
     toJSON() {
         return {
             _class: this.constructor.name,
+            id: this.id, // Envia o ID na serialização
             marca: this.marca,
             modelo: this.modelo,
             ano: this.ano,
             placa: this.placa,
             cor: this.cor,
-            status: this.status,
-            ligado: this.ligado,
-            velocidade: this.velocidade,
-            historicoManutencao: this.historicoManutencao.map(m => m.toJSON()),
-            // Atributos da API simulada
-            modeloCompleto: this.modeloCompleto,
-            tipoCombustivel: this.tipoCombustivel,
-            consumoCidade: this.consumoCidade,
-            consumoEstrada: this.consumoEstrada,
-            tanqueCombustivelL: this.tanqueCombustivelL,
-            valorFIPE: this.valorFIPE,
-            recalls: this.recalls,
-            dicaManutencao: this.dicaManutencao,
-            recursosAdicionais: this.recursosAdicionais,
-            autonomiaEstimadaKm: this.autonomiaEstimadaKm,
+            // ... (resto das propriedades que você queira salvar)
         };
     }
 
+    /**
+     * **MÉTODO CRUCIAL ATUALIZADO**
+     * Cria uma instância de Veiculo (ou suas subclasses) a partir de um objeto JSON vindo do backend.
+     * @param {object} json O objeto de dados do veículo.
+     * @returns {Veiculo} Uma instância da classe correta.
+     */
     static fromJSON(json) {
-    let veiculo;
-    
-    // ---- INÍCIO DA SOLUÇÃO ----
-    // Mude de 'switch (json._class)' para 'switch (json.tipoVeiculo)'
-    switch (json.tipoVeiculo) { 
-    // ---- FIM DA SOLUÇÃO ----
-        case 'Carro':
-            // Use os detalhes do objeto 'detalhes' que vem do banco de dados
-            veiculo = new Carro(json.marca, json.modelo, json.ano, json.placa, json.cor, [], json.detalhes?.numeroPortas);
-            break;
-        case 'CarroEsportivo':
-            veiculo = new CarroEsportivo(json.marca, json.modelo, json.ano, json.placa, json.cor, [], json.detalhes?.velocidadeMaximaTurbo);
-            if (json.hasOwnProperty('turboAtivado')) veiculo.turboAtivado = json.turboAtivado;
-            break;
-        case 'Caminhao':
-            veiculo = new Caminhao(json.marca, json.modelo, json.ano, json.placa, json.cor, [], json.detalhes?.capacidadeCarga);
-            if (json.hasOwnProperty('cargaAtual')) veiculo.cargaAtual = json.cargaAtual;
-            break;
-        case 'Veiculo':
-             veiculo = new Veiculo(json.marca, json.modelo, json.ano, json.placa, json.cor);
-             break;
-        default:
-            console.error("Veiculo.fromJSON: Tipo de veículo desconhecido:", json.tipoVeiculo, json);
-            // Crie um Veiculo genérico como fallback para não quebrar a aplicação
-            veiculo = new Veiculo(json.marca, json.modelo, json.ano, json.placa, json.cor);
-            break;
+        let veiculo;
+        const historico = json.historicoManutencao || [];
+
+        // A lógica agora usa 'tipoVeiculo', que é o campo que vem do banco de dados.
+        switch (json.tipoVeiculo) { 
+            case 'Carro':
+                // Usa os detalhes do sub-objeto 'detalhes' que vem do banco de dados
+                veiculo = new Carro(json.marca, json.modelo, json.ano, json.placa, json.cor, historico, json.detalhes?.numeroPortas);
+                break;
+            case 'CarroEsportivo':
+                veiculo = new CarroEsportivo(json.marca, json.modelo, json.ano, json.placa, json.cor, historico, json.detalhes?.velocidadeMaximaTurbo);
+                if (json.hasOwnProperty('turboAtivado')) veiculo.turboAtivado = json.turboAtivado;
+                break;
+            case 'Caminhao':
+                veiculo = new Caminhao(json.marca, json.modelo, json.ano, json.placa, json.cor, historico, json.detalhes?.capacidadeCarga);
+                if (json.hasOwnProperty('cargaAtual')) veiculo.cargaAtual = json.cargaAtual;
+                break;
+            case 'Veiculo': // Para veículos genéricos
+                 veiculo = new Veiculo(json.marca, json.modelo, json.ano, json.placa, json.cor, historico);
+                 break;
+            default:
+                console.error("Veiculo.fromJSON: Tipo de veículo desconhecido:", json.tipoVeiculo, json);
+                // Cria um Veiculo genérico como fallback para não quebrar a aplicação
+                veiculo = new Veiculo(json.marca, json.modelo, json.ano, json.placa, json.cor, historico);
+                break;
+        }
+        
+        // **CRUCIAL**: Armazena o ID do banco de dados na instância do objeto
+        veiculo.id = json._id;
+        
+        // Preenche os outros campos que podem vir do banco de dados
+        veiculo.status = json.status || "Disponível";
+        veiculo.ligado = json.ligado === true; 
+        veiculo.velocidade = json.velocidade || 0;
+        
+        // Preenche os detalhes da API simulada se existirem no objeto
+        veiculo.atualizarDetalhesDaApi(json);
+        
+        return veiculo;
     }
-    
-    // ... (o resto da função para preencher os outros campos permanece o mesmo)
-    veiculo.status = json.status || "Disponível";
-    veiculo.ligado = json.ligado === true; 
-    veiculo.velocidade = json.velocidade || 0;
-    // ...
-    
-    return veiculo;
-}
 };

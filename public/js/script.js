@@ -49,6 +49,13 @@ document.addEventListener('DOMContentLoaded', () => {
     const filtroTipoVeiculoDicaSelect = document.getElementById('filtro-tipo-veiculo-dica');
     const dicasManutencaoViewDiv = document.getElementById('dicas-manutencao-view');
 
+    // **NOVOS** Elementos do Modal de Edição de Veículo
+    const modalEditarVeiculo = document.getElementById('modal-editar-veiculo');
+    const formEditarVeiculo = document.getElementById('form-editar-veiculo');
+    const editarVeiculoIdInput = document.getElementById('editar-veiculo-id');
+    const modalEditarTituloSpan = document.getElementById('modal-editar-veiculo-titulo');
+    const camposEspecificosEditarDivs = document.querySelectorAll('.campos-especificos-editar'); // Para esconder/mostrar campos específicos no modal de edição
+
     let filtroDiasAtivo = 5;
     let destacarChuva = false;
     let destacarTempBaixa = false;
@@ -57,13 +64,12 @@ document.addEventListener('DOMContentLoaded', () => {
     let cidadeCache = "";
     let todasAsDicasCache = [];
 
-    const backendBaseUrl = 'http://localhost:3001'; // Porta do seu backend server.js
+    const backendBaseUrl = 'http://localhost:3001'; 
+    let isSubmitting = false; // Flag para evitar múltiplos envios do formulário
 
     function _renderFeatherIcons() {
         if (typeof feather !== 'undefined') {
             feather.replace({ width: '1em', height: '1em', class: 'feather-icon-inline' });
-        } else {
-            // console.warn("Feather Icons não está definido. Ícones não serão renderizados via JS.");
         }
     }
 
@@ -122,7 +128,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }, duracao);
     }
 
-    // --- API Simulada de Detalhes Veiculares ---
+    // --- API Simulada de Detalhes Veiculares (mantida para funcionalidade de detalhes extras) ---
     async function buscarDetalhesVeiculoApiSimulada(placa) {
         try {
             const response = await fetch('./data/api_veiculos_detalhes.json'); 
@@ -137,23 +143,23 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // --- Renderização e Atualização da UI (Funções da Garagem) ---
     function renderizarTudoUI() {
-        if(typeof renderizarCardsVeiculosUI === 'function') renderizarCardsVeiculosUI();
-        if(typeof atualizarPainelInteracaoUI === 'function') atualizarPainelInteracaoUI(); 
-        if(typeof renderizarAgendamentosFuturosView === 'function') renderizarAgendamentosFuturosView();
-        if(typeof renderizarLembretesManutencaoView === 'function') renderizarLembretesManutencaoView();
-        if(typeof renderizarHistoricosConsolidadosView === 'function') renderizarHistoricosConsolidadosView();
-        if(typeof preencherSelectVeiculosViagem === 'function') preencherSelectVeiculosViagem();
+        renderizarCardsVeiculosUI();
+        atualizarPainelInteracaoUI(); 
+        renderizarAgendamentosFuturosView();
+        renderizarLembretesManutencaoView();
+        renderizarHistoricosConsolidadosView();
+        preencherSelectVeiculosViagem();
     }
 
     function renderizarCardsVeiculosUI() {
-        if (!garagemDisplayCards) { console.warn("#garagem-display-cards não encontrado."); return; }
-        garagemDisplayCards.innerHTML = garagem.listarVeiculosParaCards(); // Este método DEVE existir na classe Garagem
+        if (!garagemDisplayCards) return;
+        garagemDisplayCards.innerHTML = garagem.listarVeiculosParaCards();
         document.querySelectorAll('.btn-card-selecionar').forEach(button => {
             button.addEventListener('click', (e) => {
                 const placa = e.target.dataset.placa;
-                if (garagem.selecionarVeiculoPorPlaca(placa)) { // Este método DEVE existir
-                    if(typeof atualizarPainelInteracaoUI === 'function') atualizarPainelInteracaoUI(); 
-                    renderizarCardsVeiculosUI(); // Re-renderiza para destacar o selecionado, se houver
+                if (garagem.selecionarVeiculoPorPlaca(placa)) { 
+                    atualizarPainelInteracaoUI(); 
+                    renderizarCardsVeiculosUI(); 
                 }
             });
         });
@@ -161,17 +167,14 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     
     async function atualizarPainelInteracaoUI() {
-        const veiculo = garagem.getVeiculoSelecionado(); // Este método DEVE existir
-        if (!nomeVeiculoInteracaoSpan || !divInfoVeiculoSelecionado) {
-            // console.warn("Elementos do painel de interação não encontrados."); 
-            return;
-        }
+        const veiculo = garagem.getVeiculoSelecionado();
+        if (!nomeVeiculoInteracaoSpan || !divInfoVeiculoSelecionado) return;
             
         if (veiculo) {
             nomeVeiculoInteracaoSpan.textContent = `${veiculo.constructor.name} ${veiculo.modelo} (${veiculo.placa})`;
-            // Assegure que veiculo.exibirInformacoes() e veiculo.atualizarDetalhesDaApi() existem e funcionam
             divInfoVeiculoSelecionado.innerHTML = veiculo.exibirInformacoes(); 
             
+            // Adiciona loading para detalhes da API simulada
             const carregandoDetalhesSpan = document.createElement('p');
             carregandoDetalhesSpan.id = 'loading-api-details';
             carregandoDetalhesSpan.innerHTML = '<i data-feather="loader" class="spin"></i> Buscando detalhes adicionais...';
@@ -188,31 +191,32 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (typeof veiculo.atualizarDetalhesDaApi === 'function') {
                     veiculo.atualizarDetalhesDaApi(detalhesApi);
                 }
-                garagem.salvarNoLocalStorage(); 
+                // Não precisa mais salvar no LocalStorage, o DB é a fonte
             }
             divInfoVeiculoSelecionado.innerHTML = veiculo.exibirInformacoes();
 
+            // Lógica para mostrar/esconder botões de ação específicos
             document.querySelectorAll('.acao-especifica').forEach(el => el.style.display = 'none');
             if (veiculo instanceof CarroEsportivo) {
                 document.querySelectorAll('.carroesportivo-action').forEach(el => el.style.display = (el.classList.contains('acao-com-input') ? 'flex' : 'inline-block'));
             } else if (veiculo instanceof Caminhao) {
                 document.querySelectorAll('.caminhao-action').forEach(el => el.style.display = (el.classList.contains('acao-com-input') ? 'flex' : 'inline-block'));
             }
-             if(divBotoesAcoesComuns) divBotoesAcoesComuns.style.display = 'block';
-             if(divBotoesAcoesEspecificas) divBotoesAcoesEspecificas.style.display = 'block';
+            if(divBotoesAcoesComuns) divBotoesAcoesComuns.style.display = 'block';
+            if(divBotoesAcoesEspecificas) divBotoesAcoesEspecificas.style.display = 'block';
         } else {
             nomeVeiculoInteracaoSpan.textContent = "Nenhum";
             divInfoVeiculoSelecionado.innerHTML = "<p>Selecione um veículo na aba \"Minha Garagem\" para interagir.</p>";
             if(divBotoesAcoesComuns) divBotoesAcoesComuns.style.display = 'none';
             if(divBotoesAcoesEspecificas) divBotoesAcoesEspecificas.style.display = 'none';
         }
-        if(typeof window.atualizarLogInteracoesUI === 'function') window.atualizarLogInteracoesUI();
+        window.atualizarLogInteracoesUI();
         _renderFeatherIcons();
     }
 
     window.atualizarLogInteracoesUI = function() { 
         if (!ulLogInteracoes) return;
-        ulLogInteracoes.innerHTML = garagem.getHistoricoInteracoesFormatado(); // Este método DEVE existir
+        ulLogInteracoes.innerHTML = garagem.getHistoricoInteracoesFormatado();
     }
 
     function renderizarAgendamentosFuturosView() { 
@@ -221,7 +225,7 @@ document.addEventListener('DOMContentLoaded', () => {
         let html = '<ul>'; let encontrou = false;
         garagem.veiculos.forEach(v => {
             (v.historicoManutencao || []).forEach(m => {
-                if (new Date(m.data + 'T00:00:00') >= hoje) { // Adiciona T00:00:00 para evitar problemas de fuso
+                if (new Date(m.data + 'T00:00:00') >= hoje) { 
                     html += `<li><strong>${v.placa} (${v.modelo}):</strong> ${m.formatarManutencao()}</li>`;
                     encontrou = true;
                 }
@@ -251,7 +255,7 @@ document.addEventListener('DOMContentLoaded', () => {
         html += '</ul>';
         lembretesManutencaoViewDiv.innerHTML = encontrou ? html : '<p>Nenhum lembrete para hoje ou amanhã.</p>';
         verificarAlertasPopupLembretes();
-     }
+    }
 
     function renderizarHistoricosConsolidadosView() { 
         if (!historicosConsolidadosViewDiv) return;
@@ -260,7 +264,6 @@ document.addEventListener('DOMContentLoaded', () => {
             historicosConsolidadosViewDiv.innerHTML = '<p>Nenhum veículo para exibir históricos.</p>'; return;
         }
         [...garagem.veiculos].sort((a,b) => a.placa.localeCompare(b.placa)).forEach(veiculo => {
-            // Assegure que veiculo.formatarHistoricoManutencao() existe
             if (veiculo.historicoManutencao && veiculo.historicoManutencao.length > 0 && typeof veiculo.formatarHistoricoManutencao === 'function') {
                 encontrouHistoricoGeral = true;
                 html += `<div class="historico-consolidado-veiculo"><h4>Histórico de ${veiculo.constructor.name} ${veiculo.modelo} (Placa: ${veiculo.placa})</h4><ul>${veiculo.formatarHistoricoManutencao()}</ul></div>`;
@@ -287,103 +290,90 @@ document.addEventListener('DOMContentLoaded', () => {
         if (!camposEspecificosDivs) return;
         camposEspecificosDivs.forEach(div => div.style.display = 'none');
         const valorSelecionado = tipoVeiculoSelect.value.toLowerCase();
-        if (valorSelecionado) { // Evita erro se valor for ""
+        if (valorSelecionado) { 
             const divToShow = document.getElementById(`campos-${valorSelecionado}`);
             if (divToShow) divToShow.style.display = 'block';
         }
     });
 
-if (formAddVeiculo) { 
-    const submitButton = formAddVeiculo.querySelector('button[type="submit"]');
+    if (formAddVeiculo) { 
+        const submitButton = formAddVeiculo.querySelector('button[type="submit"]');
 
-    formAddVeiculo.addEventListener('submit', async (e) => {
-        e.preventDefault();
+        formAddVeiculo.addEventListener('submit', async (e) => {
+            e.preventDefault();
 
-        // Log para depuração. Veja isso no console do navegador (F12).
-        console.log('Manipulador de envio de formulário acionado. O estado de isSubmitting é:', isSubmitting);
+            if (isSubmitting) {
+                console.log('Envio duplicado detectado e bloqueado.');
+                return;
+            }
 
-        // Se já estivermos no processo de envio, interrompa imediatamente esta nova tentativa.
-        if (isSubmitting) {
-            console.log('Envio duplicado detectado e bloqueado.');
-            return;
-        }
-
-        // Ativa a trava para bloquear envios subsequentes.
-        isSubmitting = true; 
-        if (submitButton) {
-            submitButton.disabled = true;
-            submitButton.innerHTML = '<i data-feather="loader" class="spin"></i> Salvando...';
-            _renderFeatherIcons();
-        }
-
-        const fd = new FormData(formAddVeiculo);
-        const dadosVeiculo = {
-            placa: fd.get('placa')?.toUpperCase().trim().replace(/-/g, ''),
-            marca: fd.get('marca')?.trim(),
-            modelo: fd.get('modelo')?.trim(),
-            ano: fd.get('ano') ? parseInt(fd.get('ano')) : null,
-            cor: fd.get('cor')?.trim() || "Não informada",
-            tipoVeiculo: fd.get('tipo-veiculo'),
-            detalhes: {}
-        };
-        
-        // Validação no lado do cliente
-        if (!dadosVeiculo.tipoVeiculo || !dadosVeiculo.marca || !dadosVeiculo.modelo || !dadosVeiculo.ano || !dadosVeiculo.placa) {
-            exibirNotificacao("Por favor, preencha todos os campos obrigatórios.", 'erro');
-            // IMPORTANTE: Libere a trava se a validação falhar.
-            isSubmitting = false; 
+            isSubmitting = true; 
             if (submitButton) {
-                submitButton.disabled = false;
-                submitButton.innerHTML = '<i data-feather="save"></i> Salvar Veículo';
+                submitButton.disabled = true;
+                submitButton.innerHTML = '<i data-feather="loader" class="spin"></i> Salvando...';
                 _renderFeatherIcons();
             }
-            return;
-        }
 
-        // Preenchimento dos detalhes específicos
-        switch (dadosVeiculo.tipoVeiculo) {
-            case 'Carro': dadosVeiculo.detalhes.numeroPortas = parseInt(fd.get('numero-portas')) || 4; break;
-            case 'CarroEsportivo': dadosVeiculo.detalhes.velocidadeMaximaTurbo = parseInt(fd.get('velocidade-maxima-turbo')) || 250; break;
-            case 'Caminhao': dadosVeiculo.detalhes.capacidadeCarga = parseFloat(fd.get('capacidade-carga')) || 1000; break;
-        }
-
-        try {
-            const response = await fetch(`${backendBaseUrl}/api/veiculos`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(dadosVeiculo),
-            });
-
-            const resultado = await response.json();
-            if (!response.ok) {
-                // Lança o erro que vem do backend (ex: "Veículo com a placa ... já existe.")
-                throw new Error(resultado.error);
-            }
-
-            exibirNotificacao(`Veículo ${resultado.modelo} adicionado com sucesso!`, 'sucesso');
-            formAddVeiculo.reset();
-            const tipoVeiculoSelect = document.getElementById('tipo-veiculo');
-            if(tipoVeiculoSelect) tipoVeiculoSelect.dispatchEvent(new Event('change'));
+            const fd = new FormData(formAddVeiculo);
+            const dadosVeiculo = {
+                placa: fd.get('placa')?.toUpperCase().trim().replace(/-/g, ''),
+                marca: fd.get('marca')?.trim(),
+                modelo: fd.get('modelo')?.trim(),
+                ano: fd.get('ano') ? parseInt(fd.get('ano')) : null,
+                cor: fd.get('cor')?.trim() || "Não informada",
+                tipoVeiculo: fd.get('tipo-veiculo'),
+                detalhes: {}
+            };
             
-            await carregarVeiculosDoBackend(); 
-
-        } catch (error) {
-            // Este catch agora só vai capturar erros reais ou a mensagem de placa duplicada
-            // que o backend envia na segunda requisição (que agora está bloqueada).
-            exibirNotificacao(`Erro ao adicionar veículo: ${error.message}`, 'erro');
-            console.error("Erro no POST do veículo:", error);
-        } finally {
-            // Este bloco SEMPRE será executado, liberando a trava para um novo envio futuro.
-            console.log('Processo de envio finalizado. Liberando a trava.');
-            isSubmitting = false;
-            if (submitButton) {
-                submitButton.disabled = false;
-                submitButton.innerHTML = '<i data-feather="save"></i> Salvar Veículo';
-                _renderFeatherIcons();
+            if (!dadosVeiculo.tipoVeiculo || !dadosVeiculo.marca || !dadosVeiculo.modelo || !dadosVeiculo.ano || !dadosVeiculo.placa) {
+                exibirNotificacao("Por favor, preencha todos os campos obrigatórios.", 'erro');
+                isSubmitting = false; 
+                if (submitButton) {
+                    submitButton.disabled = false;
+                    submitButton.innerHTML = '<i data-feather="save"></i> Salvar Veículo';
+                    _renderFeatherIcons();
+                }
+                return;
             }
-        }
-    });
-}
+
+            switch (dadosVeiculo.tipoVeiculo) {
+                case 'Carro': dadosVeiculo.detalhes.numeroPortas = parseInt(fd.get('numero-portas')) || 4; break;
+                case 'CarroEsportivo': dadosVeiculo.detalhes.velocidadeMaximaTurbo = parseInt(fd.get('velocidade-maxima-turbo')) || 250; break;
+                case 'Caminhao': dadosVeiculo.detalhes.capacidadeCarga = parseFloat(fd.get('capacidade-carga')) || 1000; break;
+            }
+
+            try {
+                const response = await fetch(`${backendBaseUrl}/api/veiculos`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(dadosVeiculo),
+                });
+
+                const resultado = await response.json();
+                if (!response.ok) {
+                    throw new Error(resultado.error);
+                }
+
+                exibirNotificacao(`Veículo ${resultado.modelo} adicionado com sucesso!`, 'sucesso');
+                formAddVeiculo.reset();
+                if(tipoVeiculoSelect) tipoVeiculoSelect.dispatchEvent(new Event('change'));
+                
+                await carregarVeiculosDoBackend(); 
+
+            } catch (error) {
+                exibirNotificacao(`Erro ao adicionar veículo: ${error.message}`, 'erro');
+                console.error("Erro no POST do veículo:", error);
+            } finally {
+                console.log('Processo de envio finalizado. Liberando a trava.');
+                isSubmitting = false;
+                if (submitButton) {
+                    submitButton.disabled = false;
+                    submitButton.innerHTML = '<i data-feather="save"></i> Salvar Veículo';
+                    _renderFeatherIcons();
+                }
+            }
+        });
+    }
 
     // --- Lógica de Interação com Veículo Selecionado ---
     const todosBotoesDeAcao = [ 
@@ -407,7 +397,7 @@ if (formAddVeiculo) {
             }
             atualizarPainelInteracaoUI(); 
             renderizarCardsVeiculosUI(); 
-            garagem.salvarNoLocalStorage(); 
+            // Não precisa mais salvar no LocalStorage, o DB é a fonte
         });
     });
 
@@ -443,7 +433,7 @@ if (formAddVeiculo) {
             try {
                 const manut = new Manutencao(data, tipoServico, custo, `${desc}${hora ? ` agendado para as ${hora}` : ''}`.trim());
                 veiculo.adicionarManutencao(manut);
-                garagem.salvarNoLocalStorage(); 
+                // Não precisa mais salvar no LocalStorage, o DB é a fonte
                 renderizarTudoUI(); 
                 fecharModalAgendamento(); 
                 exibirNotificacao(`Manutenção '${tipoServico}' agendada para ${placa}!`, 'sucesso');
@@ -456,16 +446,134 @@ if (formAddVeiculo) {
         const divHist = document.getElementById(`historico-${placa}`);
         if (divHist) divHist.style.display = divHist.style.display === 'none' ? 'block' : 'none';
     };
-    window.confirmarRemocaoVeiculo = (placa, modeloInfo) => { 
-        if (confirm(`Tem certeza que deseja remover ${modeloInfo} (Placa: ${placa})? Esta ação não pode ser desfeita.`)) {
-            if (garagem.removerVeiculo(placa)) {
-                garagem.salvarNoLocalStorage(); 
-                renderizarTudoUI(); 
-                exibirNotificacao(`${modeloInfo} (placa ${placa}) removido da garagem.`, 'sucesso');
-            } else exibirNotificacao(`Erro ao tentar remover ${modeloInfo}.`, 'erro');
+    
+    // **MODIFICADO**: Função de Remover Veículo (agora por ID, via API)
+    window.confirmarRemocaoVeiculo = async (id, modeloInfo) => { 
+        if (confirm(`Tem certeza que deseja remover ${modeloInfo}? Esta ação não pode ser desfeita.`)) {
+            try {
+                const response = await fetch(`${backendBaseUrl}/api/veiculos/${id}`, {
+                    method: 'DELETE',
+                });
+                const resultado = await response.json();
+                if (!response.ok) {
+                    throw new Error(resultado.error || 'Erro ao remover veículo.');
+                }
+                exibirNotificacao(resultado.message, 'sucesso');
+                await carregarVeiculosDoBackend(); // Atualiza a lista da garagem
+            } catch (error) {
+                exibirNotificacao(error.message, 'erro');
+            }
         }
     };
+
+    // **NOVAS FUNÇÕES**: Lógica de Edição de Veículo (Modal e PUT)
+    window.abrirModalEdicao = (id) => {
+        const veiculo = garagem.encontrarVeiculoPorId(id);
+        if (veiculo && modalEditarVeiculo && formEditarVeiculo && modalEditarTituloSpan && editarVeiculoIdInput) {
+            modalEditarTituloSpan.textContent = `${veiculo.modelo} (${veiculo.placa})`;
+            editarVeiculoIdInput.value = veiculo.id;
+            
+            document.getElementById('editar-marca').value = veiculo.marca;
+            document.getElementById('editar-modelo').value = veiculo.modelo;
+            document.getElementById('editar-ano').value = veiculo.ano;
+            document.getElementById('editar-cor').value = veiculo.cor;
+
+            // Lógica para mostrar/esconder e preencher campos específicos na edição
+            camposEspecificosEditarDivs.forEach(div => div.style.display = 'none'); // Esconde todos por padrão
+            
+            const tipo = veiculo.constructor.name;
+            if (tipo === 'Carro' || tipo === 'CarroEsportivo') {
+                 document.getElementById('campos-editar-carro').style.display = 'block';
+                 document.getElementById('editar-numero-portas').value = veiculo.numeroPortas || '';
+            }
+            if (tipo === 'CarroEsportivo') {
+                 document.getElementById('campos-editar-carroesportivo').style.display = 'block';
+                 document.getElementById('editar-velocidade-maxima-turbo').value = veiculo.velocidadeMaximaTurbo || '';
+            }
+            if (tipo === 'Caminhao') {
+                 document.getElementById('campos-editar-caminhao').style.display = 'block';
+                 document.getElementById('editar-capacidade-carga').value = veiculo.capacidadeCarga || '';
+            }
+
+            modalEditarVeiculo.style.display = 'block';
+            _renderFeatherIcons();
+        } else {
+            exibirNotificacao("Não foi possível encontrar o veículo para editar.", 'erro');
+        }
+    };
+
+    window.fecharModalEdicao = () => { 
+        if(modalEditarVeiculo) modalEditarVeiculo.style.display = 'none'; 
+        // Esconde campos específicos novamente ao fechar
+        camposEspecificosEditarDivs.forEach(div => div.style.display = 'none');
+    };
     
+    // Fechar modal ao clicar fora do conteúdo
+    window.addEventListener('click', (event) => { 
+        if (modalEditarVeiculo && event.target === modalEditarVeiculo) {
+            fecharModalEdicao();
+        }
+    });
+
+    if(formEditarVeiculo) {
+        formEditarVeiculo.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const id = editarVeiculoIdInput.value;
+            const submitButton = formEditarVeiculo.querySelector('button[type="submit"]');
+
+            const dadosAtualizados = {
+                marca: document.getElementById('editar-marca').value.trim(),
+                modelo: document.getElementById('editar-modelo').value.trim(),
+                ano: parseInt(document.getElementById('editar-ano').value),
+                cor: document.getElementById('editar-cor').value.trim() || "Não informada",
+                // Não é necessário enviar tipoVeiculo, já que o ID já identifica o veículo
+                detalhes: {} // Objeto para detalhes específicos
+            };
+            
+            // Coleta dados específicos, verificando se o campo está visível e tem valor
+            const numPortasInput = document.getElementById('editar-numero-portas');
+            if (numPortasInput && numPortasInput.closest('.campos-especificos-editar').style.display !== 'none') {
+                dadosAtualizados.detalhes.numeroPortas = parseInt(numPortasInput.value);
+            }
+            const velTurboInput = document.getElementById('editar-velocidade-maxima-turbo');
+            if (velTurboInput && velTurboInput.closest('.campos-especificos-editar').style.display !== 'none') {
+                dadosAtualizados.detalhes.velocidadeMaximaTurbo = parseInt(velTurboInput.value);
+            }
+            const cargaInput = document.getElementById('editar-capacidade-carga');
+            if (cargaInput && cargaInput.closest('.campos-especificos-editar').style.display !== 'none') {
+                dadosAtualizados.detalhes.capacidadeCarga = parseFloat(cargaInput.value);
+            }
+            
+            // Ativa o loading e desabilita o botão
+            submitButton.disabled = true;
+            submitButton.innerHTML = '<i data-feather="loader" class="spin"></i> Salvando...';
+            _renderFeatherIcons();
+
+            try {
+                const response = await fetch(`${backendBaseUrl}/api/veiculos/${id}`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(dadosAtualizados),
+                });
+                const resultado = await response.json();
+                if (!response.ok) throw new Error(resultado.error || `Erro ${response.status} ao atualizar veículo.`);
+
+                exibirNotificacao(`Veículo ${resultado.modelo} atualizado com sucesso!`, 'sucesso');
+                fecharModalEdicao();
+                await carregarVeiculosDoBackend(); // Recarrega todos os veículos para atualizar a UI
+            } catch (error) {
+                exibirNotificacao(`Erro ao atualizar veículo: ${error.message}`, 'erro');
+                console.error("Erro no PUT do veículo:", error);
+            } finally {
+                // Restaura o botão
+                submitButton.disabled = false;
+                submitButton.innerHTML = '<i data-feather="save"></i> Salvar Alterações';
+                _renderFeatherIcons();
+            }
+        });
+    }
+
+
     // --- Lógica do Planejador de Viagem (CHAMANDO O BACKEND) ---
     async function fetchWeatherFromBackend(city, type = 'forecast') {
         if (!cityInputViagem || !weatherResultDivViagem || !searchButtonViagem || !errorMessageDivViagem) {
@@ -473,7 +581,7 @@ if (formAddVeiculo) {
         }
         if (!city) {
             errorMessageDivViagem.textContent = 'Por favor, digite o nome de uma cidade.';
-            errorMessageDivViagem.style.display = 'block';
+            errorMessageViagem.style.display = 'block';
             weatherResultDivViagem.innerHTML = '<p class="placeholder">Digite uma cidade.</p>';
             return null;
         }
@@ -578,7 +686,7 @@ if (formAddVeiculo) {
             card.addEventListener('click', () => {
                 const detalhesDiv = card.querySelector('.detalhes-horarios');
                 if(!detalhesDiv) return;
-                const diaIndex = parseInt(card.dataset.diaIndex);
+                const diaIndex = parseInt(card.dataset.dia-index);
                 if (!diasExibidos || diaIndex < 0 || diaIndex >= diasExibidos.length) return;
                 const dadosDia = diasExibidos[diaIndex];
                 if (!dadosDia || !dadosDia.previsoesHorarias) { detalhesDiv.innerHTML = "<p>Detalhes indisponíveis.</p>"; detalhesDiv.style.display = 'block'; return; }
@@ -633,320 +741,164 @@ if (formAddVeiculo) {
 
     // --- FUNÇÕES PARA BUSCAR E EXIBIR DADOS DO "ARSENAL DO BACKEND" ---
 
-/**
- * Carrega e exibe os veículos em destaque de um endpoint do backend.
- */
-// NOVA FUNÇÃO para buscar veículos do backend
-async function carregarVeiculosDoBackend() {
-    try {
-        const response = await fetch(`${backendBaseUrl}/api/veiculos`);
-        if (!response.ok) {
-            throw new Error('Falha ao buscar veículos do servidor.');
-        }
-        const veiculosDoDb = await response.json();
-        
-        // Limpa a garagem atual e adiciona os veículos do banco de dados
-        garagem.veiculos = []; 
-        veiculosDoDb.forEach(jsonVeiculo => {
-            try {
-                // Usa a desserialização que você já tem no Veiculo.js do frontend
-                const veiculo = Veiculo.fromJSON(jsonVeiculo); 
-                garagem.adicionarVeiculo(veiculo);
-            } catch (e) {
-                console.error("Erro ao processar veículo do DB:", jsonVeiculo, e);
-            }
-        });
-
-        renderizarTudoUI(); // Atualiza toda a interface com os novos dados
-        exibirNotificacao("Garagem sincronizada com o banco de dados.", 'info');
-
-    } catch (error) {
-        console.error("Erro ao carregar veículos do backend:", error);
-        exibirNotificacao(error.message, 'erro');
-    }
-}
-
-// ...
-
-// MODIFIQUE o listener do formulário 'formAddVeiculo'
-// Adicione esta variável de controle no escopo do DOMContentLoaded, antes do listener
-let isSubmitting = false;
-
-if (formAddVeiculo) { 
-    const submitButton = formAddVeiculo.querySelector('button[type="submit"]');
-
-    formAddVeiculo.addEventListener('submit', async (e) => {
-        e.preventDefault();
-
-        // ---- INÍCIO DA SOLUÇÃO ----
-        // Se já estiver enviando, não faça nada.
-        if (isSubmitting) {
-            return;
-        }
-        // Ativa a "trava" e atualiza a UI do botão
-        isSubmitting = true; 
-        if (submitButton) {
-            submitButton.disabled = true;
-            submitButton.innerHTML = '<i data-feather="loader" class="spin"></i> Salvando...';
-            _renderFeatherIcons();
-        }
-        // ---- FIM DA SOLUÇÃO ----
-
-        const fd = new FormData(formAddVeiculo);
-        // ... (o resto da sua lógica de pegar os dados do formulário permanece igual)
-        const dadosVeiculo = {
-            placa: fd.get('placa')?.toUpperCase().trim().replace(/-/g, ''),
-            marca: fd.get('marca')?.trim(),
-            modelo: fd.get('modelo')?.trim(),
-            ano: fd.get('ano') ? parseInt(fd.get('ano')) : null,
-            cor: fd.get('cor')?.trim() || "Não informada",
-            tipoVeiculo: fd.get('tipo-veiculo'),
-            detalhes: {}
-        };
-        
-        if (!dadosVeiculo.tipoVeiculo || !dadosVeiculo.marca || !dadosVeiculo.modelo || !dadosVeiculo.ano || !dadosVeiculo.placa) {
-            exibirNotificacao("Por favor, preencha todos os campos obrigatórios.", 'erro');
-            // Libera a trava em caso de erro de validação
-            isSubmitting = false;
-            if (submitButton) {
-                submitButton.disabled = false;
-                submitButton.innerHTML = '<i data-feather="save"></i> Salvar Veículo';
-                _renderFeatherIcons();
-            }
-            return;
-        }
-
-        switch (dadosVeiculo.tipoVeiculo) {
-            case 'Carro': dadosVeiculo.detalhes.numeroPortas = parseInt(fd.get('numero-portas')) || 4; break;
-            case 'CarroEsportivo': dadosVeiculo.detalhes.velocidadeMaximaTurbo = parseInt(fd.get('velocidade-maxima-turbo')) || 250; break;
-            case 'Caminhao': dadosVeiculo.detalhes.capacidadeCarga = parseFloat(fd.get('capacidade-carga')) || 1000; break;
-        }
-
+    async function carregarVeiculosDoBackend() {
         try {
-            const response = await fetch(`${backendBaseUrl}/api/veiculos`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(dadosVeiculo),
-            });
-
-            const resultado = await response.json();
-            if (!response.ok) throw new Error(resultado.error || `Erro ${response.status}`);
-
-            exibirNotificacao(`Veículo ${resultado.modelo} adicionado com sucesso!`, 'sucesso');
-            formAddVeiculo.reset();
-            const tipoVeiculoSelect = document.getElementById('tipo-veiculo');
-            if(tipoVeiculoSelect) tipoVeiculoSelect.dispatchEvent(new Event('change'));
-            
-            await carregarVeiculosDoBackend(); 
-
-        } catch (error) {
-            exibirNotificacao(`Erro ao adicionar veículo: ${error.message}`, 'erro');
-            console.error("Erro no POST do veículo:", error);
-        } finally {
-            // ---- INÍCIO DA SOLUÇÃO ----
-            // Libera a trava e restaura o botão, não importa o que aconteceu.
-            isSubmitting = false;
-            if (submitButton) {
-                submitButton.disabled = false;
-                submitButton.innerHTML = '<i data-feather="save"></i> Salvar Veículo';
-                _renderFeatherIcons();
-            }
-            // ---- FIM DA SOLUÇÃO ----
-        }
-    });
-}
-
-// MODIFIQUE a função de remoção
-window.confirmarRemocaoVeiculo = async (placa, modeloInfo) => { 
-    if (confirm(`Tem certeza que deseja remover ${modeloInfo} (Placa: ${placa})? Esta ação não pode ser desfeita.`)) {
-        try {
-            const response = await fetch(`${backendBaseUrl}/api/veiculos/${placa}`, {
-                method: 'DELETE',
-            });
-            const resultado = await response.json();
+            const response = await fetch(`${backendBaseUrl}/api/veiculos`);
             if (!response.ok) {
-                throw new Error(resultado.error || 'Erro ao remover veículo.');
+                throw new Error('Falha ao buscar veículos do servidor.');
             }
-            exibirNotificacao(resultado.message, 'sucesso');
-            await carregarVeiculosDoBackend(); // Atualiza a lista da garagem
+            const veiculosDoDb = await response.json();
+            
+            // Limpa a garagem atual e adiciona os veículos do banco de dados
+            garagem.veiculos = []; 
+            veiculosDoDb.forEach(jsonVeiculo => {
+                try {
+                    const veiculo = Veiculo.fromJSON(jsonVeiculo); 
+                    garagem.adicionarVeiculo(veiculo);
+                } catch (e) {
+                    console.error("Erro ao processar veículo do DB:", jsonVeiculo, e);
+                }
+            });
+
+            renderizarTudoUI(); 
+            exibirNotificacao("Garagem sincronizada com o banco de dados.", 'info');
+
         } catch (error) {
+            console.error("Erro ao carregar veículos do backend:", error);
             exibirNotificacao(error.message, 'erro');
         }
     }
-};
 
-
-async function carregarVeiculosDestaque() {
-    if (!cardsVeiculosDestaqueDiv) return;
-    cardsVeiculosDestaqueDiv.innerHTML = `<p class="placeholder"><i data-feather="loader" class="spin"></i> Carregando destaques...</p>`;
-    _renderFeatherIcons();
-    try {
-        const response = await fetch(`${backendBaseUrl}/api/garagem/veiculos-destaque`);
-        if (!response.ok) throw new Error('Falha ao carregar veículos em destaque.');
-        const veiculos = await response.json();
-        cardsVeiculosDestaqueDiv.innerHTML = '';
-        if (!veiculos || veiculos.length === 0) { 
-            cardsVeiculosDestaqueDiv.innerHTML = '<p class="placeholder">Nenhum veículo em destaque no momento.</p>'; 
-            return; 
-        }
-        veiculos.forEach(v => {
-            const card = document.createElement('div'); 
-            card.className = 'veiculo-destaque-card';
-            card.innerHTML = `
-                <img src="${v.imagemUrl || 'images/placeholder_car.png'}" alt="${v.modelo}">
-                <h4>${v.modelo}</h4>
-                <p class="ano-destaque">Ano: ${v.ano}</p>
-                <p class="texto-destaque">${v.destaque}</p>
-            `;
-            cardsVeiculosDestaqueDiv.appendChild(card);
-        });
-    } catch (e) { 
-        console.error(e); 
-        cardsVeiculosDestaqueDiv.innerHTML = `<p class="placeholder erro"><i data-feather="alert-triangle"></i> ${e.message}</p>`; 
-        _renderFeatherIcons(); 
-    }
-}
-
-/**
- * Carrega e exibe a lista de serviços oferecidos pela garagem.
- */
-async function carregarServicosGaragem() {
-    if (!listaServicosOferecidosUl) return;
-    listaServicosOferecidosUl.innerHTML = `<li class="placeholder"><i data-feather="loader" class="spin"></i> Carregando serviços...</li>`; 
-    _renderFeatherIcons();
-    try {
-        const response = await fetch(`${backendBaseUrl}/api/garagem/servicos-oferecidos`);
-        if (!response.ok) throw new Error('Falha ao carregar serviços oferecidos.');
-        const servicos = await response.json();
-        listaServicosOferecidosUl.innerHTML = '';
-        if (!servicos || servicos.length === 0) { 
-            listaServicosOferecidosUl.innerHTML = '<li class="placeholder">Nenhum serviço cadastrado.</li>'; 
-            return; 
-        }
-        servicos.forEach(s => {
-            const item = document.createElement('li');
-            item.innerHTML = `<strong>${s.nome}</strong>: ${s.descricao}${s.precoEstimado ? `<span class="preco-servico">A partir de: ${s.precoEstimado}</span>` : ''}`;
-            listaServicosOferecidosUl.appendChild(item);
-        });
-    } catch (e) { 
-        console.error(e); 
-        listaServicosOferecidosUl.innerHTML = `<li class="placeholder erro"><i data-feather="alert-triangle"></i> ${e.message}</li>`; 
-        _renderFeatherIcons(); 
-    }
-}
-
-/**
- * Carrega todas as dicas de manutenção do backend e as armazena em cache.
- */
-async function carregarTodasAsDicasDoBackend() {
-    if (!dicasManutencaoViewDiv) return;
-    dicasManutencaoViewDiv.innerHTML = `<p class="placeholder"><i data-feather="loader" class="spin"></i> Carregando dicas de manutenção...</p>`; 
-    _renderFeatherIcons();
-    try {
-        const response = await fetch(`${backendBaseUrl}/api/garagem/dicas-manutencao`);
-        if (!response.ok) throw new Error('Falha ao carregar as dicas de manutenção.');
-        todasAsDicasCache = await response.json();
-        renderizarDicasFiltradas(); 
-    } catch (error) {
-        console.error("Erro ao buscar Dicas:", error);
-        todasAsDicasCache = [];
-        dicasManutencaoViewDiv.innerHTML = `<p class="placeholder erro"><i data-feather="alert-triangle"></i> ${error.message}</p>`;
+    async function carregarVeiculosDestaque() {
+        if (!cardsVeiculosDestaqueDiv) return;
+        cardsVeiculosDestaqueDiv.innerHTML = `<p class="placeholder"><i data-feather="loader" class="spin"></i> Carregando destaques...</p>`;
         _renderFeatherIcons();
-    }
-}
-
-/**
- * Renderiza as dicas na UI com base no filtro selecionado.
- */
-function renderizarDicasFiltradas() {
-    if (!dicasManutencaoViewDiv || !filtroTipoVeiculoDicaSelect) return;
-    const tipoSelecionado = filtroTipoVeiculoDicaSelect.value;
-    dicasManutencaoViewDiv.innerHTML = ''; 
-    
-    if (todasAsDicasCache.length === 0 ) { 
-        dicasManutencaoViewDiv.innerHTML = '<p class="placeholder">Nenhuma dica foi carregada.</p>'; 
-        return;
-    }
-
-    const dicasFiltradas = todasAsDicasCache.filter(dica => 
-        tipoSelecionado === "geral" || (dica.tipoAplicavel && dica.tipoAplicavel.includes(tipoSelecionado))
-    );
-
-    if (dicasFiltradas.length === 0) {
-        dicasManutencaoViewDiv.innerHTML = `<p class="placeholder">Nenhuma dica encontrada para o tipo "${tipoSelecionado}".</p>`; 
-        return;
-    }
-
-    const ul = document.createElement('ul'); 
-    ul.className = 'lista-bonita'; 
-    dicasFiltradas.forEach(dica => {
-        const li = document.createElement('li');
-        li.innerHTML = `<strong>${dica.titulo}:</strong> ${dica.dica}`;
-        ul.appendChild(li);
-    });
-    dicasManutencaoViewDiv.appendChild(ul);
-}
-
-// Adiciona o listener para o filtro de dicas
-if (filtroTipoVeiculoDicaSelect) {
-    filtroTipoVeiculoDicaSelect.addEventListener('change', renderizarDicasFiltradas);
-}
-
-
-/**
- * Verifica se há lembretes de manutenção e exibe pop-ups se necessário.
- * A lógica específica para pop-ups deve ser implementada aqui.
- */
-function verificarAlertasPopupLembretes() {
-    // Esta função foi mantida como um espaço reservado.
-    // Você pode adicionar aqui a lógica para exibir notificações mais proeminentes
-    // (modais, pop-ups, etc.) para manutenções agendadas para hoje ou amanhã,
-    // usando os dados já carregados na `garagem.veiculos`.
-    // Exemplo:
-    /*
-    const hoje = new Date(); hoje.setHours(0,0,0,0);
-    garagem.veiculos.forEach(v => {
-        (v.historicoManutencao || []).forEach(m => {
-            const dataM = new Date(m.data);
-            if (dataM.getTime() === hoje.getTime()) {
-                // alert(`LEMBRETE: ${m.tipo} para o veículo ${v.placa} é hoje!`);
+        try {
+            const response = await fetch(`${backendBaseUrl}/api/garagem/veiculos-destaque`);
+            if (!response.ok) throw new Error('Falha ao carregar veículos em destaque.');
+            const veiculos = await response.json();
+            cardsVeiculosDestaqueDiv.innerHTML = '';
+            if (!veiculos || veiculos.length === 0) { 
+                cardsVeiculosDestaqueDiv.innerHTML = '<p class="placeholder">Nenhum veículo em destaque no momento.</p>'; 
+                return; 
             }
-        });
-    });
-    */
-}
-
-
-// --- INICIALIZAÇÃO DA APLICAÇÃO ---
-
-/**
- * Função principal que inicializa todos os componentes da aplicação.
- */
-function inicializarApp() {
-    // 1. Carrega os dados principais da aplicação a partir do backend.
-    carregarVeiculosDoBackend();
-    
-    // ... o resto da função permanece o mesmo
-    carregarVeiculosDestaque();
-    carregarServicosGaragem();
-    carregarTodasAsDicasDoBackend();
-
-    // 3. Define o estado inicial de alguns elementos da UI.
-    if(tipoVeiculoSelect) tipoVeiculoSelect.dispatchEvent(new Event('change')); // Garante que os campos específicos fiquem ocultos
-    if(controlesPrevisaoDiv) controlesPrevisaoDiv.style.display = 'none'; // Esconde os controles de previsão do tempo
-    
-    // 4. Ativa a primeira aba do menu por padrão para garantir que uma tela seja exibida.
-    if (navButtons.length > 0 && !document.querySelector('.nav-button.active')) {
-        navButtons[0].click();
+            veiculos.forEach(v => {
+                const card = document.createElement('div'); 
+                card.className = 'veiculo-destaque-card';
+                card.innerHTML = `
+                    <img src="${v.imagemUrl || 'images/placeholder_car.png'}" alt="${v.modelo}">
+                    <h4>${v.modelo}</h4>
+                    <p class="ano-destaque">Ano: ${v.ano}</p>
+                    <p class="texto-destaque">${v.destaque}</p>
+                `;
+                cardsVeiculosDestaqueDiv.appendChild(card);
+            });
+        } catch (e) { 
+            console.error(e); 
+            cardsVeiculosDestaqueDiv.innerHTML = `<p class="placeholder erro"><i data-feather="alert-triangle"></i> ${e.message}</p>`; 
+            _renderFeatherIcons(); 
+        }
     }
-    
-    // 5. Renderiza todos os ícones Feather que podem ter sido adicionados dinamicamente.
-    _renderFeatherIcons();
-    
-    console.log("Aplicação da Garagem inicializada com sucesso, conectada ao backend.");
-}
 
-// Inicia a aplicação quando o DOM estiver completamente carregado.
-inicializarApp();
+    async function carregarServicosGaragem() {
+        if (!listaServicosOferecidosUl) return;
+        listaServicosOferecidosUl.innerHTML = `<li class="placeholder"><i data-feather="loader" class="spin"></i> Carregando serviços...</li>`; 
+        _renderFeatherIcons();
+        try {
+            const response = await fetch(`${backendBaseUrl}/api/garagem/servicos-oferecidos`);
+            if (!response.ok) throw new Error('Falha ao carregar serviços oferecidos.');
+            const servicos = await response.json();
+            listaServicosOferecidosUl.innerHTML = '';
+            if (!servicos || servicos.length === 0) { 
+                listaServicosOferecidosUl.innerHTML = '<li class="placeholder">Nenhum serviço cadastrado.</li>'; 
+                return; 
+            }
+            servicos.forEach(s => {
+                const item = document.createElement('li');
+                item.innerHTML = `<strong>${s.nome}</strong>: ${s.descricao}${s.precoEstimado ? `<span class="preco-servico">A partir de: ${s.precoEstimado}</span>` : ''}`;
+                listaServicosOferecidosUl.appendChild(item);
+            });
+        } catch (e) { 
+            console.error(e); 
+            listaServicosOferecidosUl.innerHTML = `<li class="placeholder erro"><i data-feather="alert-triangle"></i> ${e.message}</li>`; 
+            _renderFeatherIcons(); 
+        }
+    }
+
+    async function carregarTodasAsDicasDoBackend() {
+        if (!dicasManutencaoViewDiv) return;
+        dicasManutencaoViewDiv.innerHTML = `<p class="placeholder"><i data-feather="loader" class="spin"></i> Carregando dicas de manutenção...</p>`; 
+        _renderFeatherIcons();
+        try {
+            const response = await fetch(`${backendBaseUrl}/api/garagem/dicas-manutencao`);
+            if (!response.ok) throw new Error('Falha ao carregar as dicas de manutenção.');
+            todasAsDicasCache = await response.json();
+            renderizarDicasFiltradas(); 
+        } catch (error) {
+            console.error("Erro ao buscar Dicas:", error);
+            todasAsDicasCache = [];
+            dicasManutencaoViewDiv.innerHTML = `<p class="placeholder erro"><i data-feather="alert-triangle"></i> ${error.message}</p>`;
+            _renderFeatherIcons();
+        }
+    }
+
+    function renderizarDicasFiltradas() {
+        if (!dicasManutencaoViewDiv || !filtroTipoVeiculoDicaSelect) return;
+        const tipoSelecionado = filtroTipoVeiculoDicaSelect.value;
+        dicasManutencaoViewDiv.innerHTML = ''; 
+        
+        if (todasAsDicasCache.length === 0 ) { 
+            dicasManutencaoViewDiv.innerHTML = '<p class="placeholder">Nenhuma dica foi carregada.</p>'; 
+            return;
+        }
+
+        const dicasFiltradas = todasAsDicasCache.filter(dica => 
+            tipoSelecionado === "geral" || (dica.tipoAplicavel && dica.tipoAplicavel.includes(tipoSelecionado))
+        );
+
+        if (dicasFiltradas.length === 0) {
+            dicasManutencaoViewDiv.innerHTML = `<p class="placeholder">Nenhuma dica encontrada para o tipo "${tipoSelecionado}".</p>`; 
+            return;
+        }
+
+        const ul = document.createElement('ul'); 
+        ul.className = 'lista-bonita'; 
+        dicasFiltradas.forEach(dica => {
+            const li = document.createElement('li');
+            li.innerHTML = `<strong>${dica.titulo}:</strong> ${dica.dica}`;
+            ul.appendChild(li);
+        });
+        dicasManutencaoViewDiv.appendChild(ul);
+    }
+
+    if (filtroTipoVeiculoDicaSelect) {
+        filtroTipoVeiculoDicaSelect.addEventListener('change', renderizarDicasFiltradas);
+    }
+
+    function verificarAlertasPopupLembretes() {
+        // Lógica para exibir pop-ups ou alertas para lembretes de manutenção
+    }
+
+
+    // --- INICIALIZAÇÃO DA APLICAÇÃO ---
+    function inicializarApp() {
+        carregarVeiculosDoBackend();
+        carregarVeiculosDestaque();
+        carregarServicosGaragem();
+        carregarTodasAsDicasDoBackend();
+
+        if(tipoVeiculoSelect) tipoVeiculoSelect.dispatchEvent(new Event('change')); 
+        if(controlesPrevisaoDiv) controlesPrevisaoDiv.style.display = 'none'; 
+        
+        if (navButtons.length > 0 && !document.querySelector('.nav-button.active')) {
+            navButtons[0].click();
+        }
+        
+        _renderFeatherIcons();
+        
+        console.log("Aplicação da Garagem inicializada com sucesso, conectada ao backend.");
+    }
+
+    inicializarApp();
 
 }); // Fim do listener 'DOMContentLoaded'
