@@ -411,7 +411,7 @@ document.addEventListener('DOMContentLoaded', () => {
             return null;
         }
         const backendPort = 3001; 
-        const backendApiUrl = `http://localhost:${backendPort}/api/${type}/${encodeURIComponent(city)}`;
+        const backendApiUrl = `https://garagem-digital.onrender.com/api/${type}/${encodeURIComponent(city)}`;
 
         weatherResultDivViagem.innerHTML = `<p class="placeholder"><i data-feather="loader" class="spin"></i> Buscando ${type === 'forecast' ? 'previsão detalhada' : 'clima atual'} para ${city}...</p>`;
         _renderFeatherIcons();
@@ -558,7 +558,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // <-- ADICIONADO: NOVAS FUNÇÕES E LISTENERS PARA DICAS DE MANUTENÇÃO -->
     async function buscarDicasManutencaoAPI(tipoVeiculo = null) {
         const backendPort = 3001;
-        let url = `http://localhost:${backendPort}/api/dicas-manutencao`;
+        let url = `https://garagem-digital.onrender.com/api/dicas-manutencao`;
         if (tipoVeiculo && tipoVeiculo.toLowerCase() !== "geral") {
             url += `/${encodeURIComponent(tipoVeiculo)}`;
         }
@@ -643,4 +643,5 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     inicializarApp();
+
 });
