@@ -64,7 +64,7 @@ document.addEventListener('DOMContentLoaded', () => {
     let cidadeCache = "";
     let todasAsDicasCache = [];
 
-    const backendBaseUrl = 'http://localhost:3001'; 
+    const backendBaseUrl = 'https://garagem-digital.onrender.com'; 
     let isSubmitting = false;
 
     function _renderFeatherIcons() {
@@ -546,7 +546,7 @@ document.addEventListener('DOMContentLoaded', () => {
             return null;
         }
         const backendPort = 3001;
-        const backendApiUrl = `http://localhost:${backendPort}/api/${type}/${encodeURIComponent(city)}`;
+        const backendApiUrl = `https://garagem-digital.onrender.com/api/${type}/${encodeURIComponent(city)}`;
 
         weatherResultDivViagem.innerHTML = `<p class="placeholder"><i data-feather="loader" class="spin"></i> Buscando ${type === 'forecast' ? 'previsão detalhada' : 'clima atual'} para ${city}...</p>`;
         _renderFeatherIcons();
@@ -839,5 +839,6 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     inicializarApp();
+
 
 }); // Fim do listener 'DOMContentLoaded'
