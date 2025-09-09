@@ -64,7 +64,7 @@ document.addEventListener('DOMContentLoaded', () => {
     let cidadeCache = "";
     let todasAsDicasCache = [];
 
-    const backendBaseUrl = 'http://localhost:3001'; 
+    const backendBaseUrl = 'https://garagem-digital.onrender.com'; 
     let isSubmitting = false;
 
     function _renderFeatherIcons() {
@@ -842,3 +842,4 @@ document.addEventListener('DOMContentLoaded', () => {
 
 
 }); // Fim do listener 'DOMContentLoaded'
+
