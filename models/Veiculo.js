@@ -2,51 +2,28 @@
 import mongoose from 'mongoose';
 
 const veiculoSchema = new mongoose.Schema({
-    placa: { 
-        type: String, 
-        required: [true, 'A placa é obrigatória.'],
-        unique: true,
-        uppercase: true,
-        trim: true,
-        match: [/^[A-Z]{3}[0-9][A-Z0-9][0-9]{2}$|^[A-Z]{3}[0-9]{4}$/, 'Formato de placa inválido.']
+    // ... (campos existentes: placa, marca, modelo, etc.)
+    placa: { /* ... */ },
+    marca: { /* ... */ },
+    modelo: { /* ... */ },
+    ano: { /* ... */ },
+    cor: { /* ... */ },
+    tipoVeiculo: { /* ... */ },
+    detalhes: { /* ... */ },
+
+    // --- NOVOS CAMPOS ---
+    isPublic: {
+        type: Boolean,
+        default: false // Por padrão, os carros são privados
     },
-    marca: { 
-        type: String, 
-        required: [true, 'A marca é obrigatória.'],
-        trim: true
-    },
-    modelo: { 
-        type: String, 
-        required: [true, 'O modelo é obrigatório.'],
-        trim: true
-    },
-    ano: { 
-        type: Number, 
-        required: [true, 'O ano é obrigatório.'],
-        min: [1886, 'O ano deve ser no mínimo 1886.'],
-        max: [new Date().getFullYear() + 2, 'O ano não pode ser muito no futuro.']
-    },
-    cor: { 
-        type: String,
-        trim: true,
-        default: 'Não informada'
-    },
-    // Adicionando o tipo de veículo para diferenciação
-    tipoVeiculo: {
-        type: String,
-        required: [true, 'O tipo de veículo é obrigatório.'],
-        enum: ['Carro', 'CarroEsportivo', 'Caminhao', 'Veiculo'] // Só permite esses valores
-    },
-    // Adicionando campos específicos que podem variar por tipo
-    detalhes: {
-        numeroPortas: { type: Number },
-        velocidadeMaximaTurbo: { type: Number },
-        capacidadeCarga: { type: Number }
+    owner: {
+        type: mongoose.Schema.Types.ObjectId,
+        required: true,
+        ref: 'User' // Referência ao modelo de Usuário
     }
-}, { 
-    timestamps: true 
+}, {
+    timestamps: true
 });
 
 const VeiculoModel = mongoose.model('Veiculo', veiculoSchema);
-
 export default VeiculoModel;

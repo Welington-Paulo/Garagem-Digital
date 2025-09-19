@@ -33,8 +33,11 @@ class CarroEsportivo extends Carro {
     }
 
     exibirDetalhesCard() {
-        let baseDetails = super.exibirDetalhesCard().replace(`, Motor: ${this.ligado ? 'ON' : 'OFF'}, Vel: ${this.velocidade}km/h`, '');
-        return `${baseDetails}, Vel.Máx: ${this.getVelocidadeMaximaPermitida()} km/h, Turbo: ${this.turboAtivado ? '<span style="color:var(--cor-destaque-aviso);">ON</span>' : 'OFF'}, Motor: ${this.ligado ? 'ON' : 'OFF'}, Vel: ${this.velocidade}km/h`;
+        // CORREÇÃO: Remove o .replace() frágil e constrói a string de forma mais robusta.
+        // Pega as informações básicas (Marca, Modelo, Ano, Placa, Cor) da classe avô (Veiculo).
+        const baseDetails = super.exibirDetalhesBase();
+        // Adiciona as informações específicas desta classe (CarroEsportivo) e da sua classe mãe (Carro).
+        return `${baseDetails}, Portas: ${this.numeroPortas}, Vel.Máx: ${this.getVelocidadeMaximaPermitida()} km/h, Turbo: ${this.turboAtivado ? '<span style="color:var(--cor-destaque-aviso);">ON</span>' : 'OFF'}, Motor: ${this.ligado ? 'ON' : 'OFF'}, Vel: ${this.velocidade}km/h`;
     }
 
     exibirInformacoes() {
