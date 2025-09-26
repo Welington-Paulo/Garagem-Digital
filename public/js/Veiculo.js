@@ -11,10 +11,8 @@ class Veiculo {
      * @param {string} placa A placa do veículo.
      * @param {string} [cor="Branco"] A cor do veículo.
      * @param {Array<Manutencao>} [historicoManutencao=[]] O histórico de manutenções.
-     * @param {object} [owner={_id: '', username: 'Desconhecido'}] O objeto do proprietário (id e username).
-     * @param {string} [visibility='public'] A visibilidade do veículo ('public' ou 'private').
      */
-    constructor(marca, modelo, ano, placa, cor = "Branco", historicoManutencao = [], owner = {_id: '', username: 'Desconhecido'}, visibility = 'public') {
+    constructor(marca, modelo, ano, placa, cor = "Branco", historicoManutencao = []) {
         if (!marca || !modelo || !ano || !placa) {
             throw new Error("Marca, modelo, ano e placa são obrigatórios para criar um veículo.");
         }
@@ -39,10 +37,6 @@ class Veiculo {
         this.dicaManutencao = "";
         this.recursosAdicionais = [];
         this.autonomiaEstimadaKm = null;
-
-        // NOVO: Propriedades de Proprietário e Visibilidade
-        this.owner = owner; // Objeto com _id e username
-        this.visibility = visibility;
 
         // Garante que o histórico de manutenção seja composto por instâncias de Manutencao
         this.historicoManutencao = historicoManutencao.map(m =>
@@ -151,19 +145,13 @@ class Veiculo {
             `;
         }
 
-        // NOVO: Exibe proprietário e visibilidade
-        const ownerInfo = this.owner && this.owner.username ? `<strong>Proprietário:</strong> ${this.owner.username}<br>` : '';
-        const visibilityInfo = `<strong>Visibilidade:</strong> ${this.visibility === 'public' ? 'Público' : 'Privado'}<br>`;
-
         return `
-            ${ownerInfo}
-            ${visibilityInfo}
             <strong>Tipo:</strong> ${this.constructor.name}<br>
             <strong>Modelo:</strong> ${this.modelo} (${this.marca}, ${this.ano})<br>
             <strong>Placa:</strong> ${this.placa}<br>
             <strong>Cor:</strong> ${this.cor}<br>
             <strong>Status Geral:</strong> ${this.status}<br>
-            <strong>Motor:</strong> ${this.ligado ? 'Ligado <span style="color:var(--success);">⬤</span>' : 'Desligado <span style="color:var(--error);">⬤</span>'}<br>
+            <strong>Motor:</strong> ${this.ligado ? 'Ligado <span style="color:var(--cor-destaque-sucesso);">⬤</span>' : 'Desligado <span style="color:var(--cor-destaque-erro);">⬤</span>'}<br>
             <strong>Velocidade:</strong> ${this.velocidade} km/h
             ${detalhesApiHtml}
         `;
@@ -205,8 +193,6 @@ class Veiculo {
             ano: this.ano,
             placa: this.placa,
             cor: this.cor,
-            owner: this.owner, // Inclui o owner
-            visibility: this.visibility, // Inclui a visibilidade
             // ... (resto das propriedades que você queira salvar)
         };
     }
@@ -220,30 +206,28 @@ class Veiculo {
     static fromJSON(json) {
         let veiculo;
         const historico = json.historicoManutencao || [];
-        const owner = json.owner || {_id: '', username: 'Desconhecido'}; // NOVO: Captura o owner
-        const visibility = json.visibility || 'public'; // NOVO: Captura a visibilidade
 
         // A lógica agora usa 'tipoVeiculo', que é o campo que vem do banco de dados.
         switch (json.tipoVeiculo) { 
             case 'Carro':
                 // Usa os detalhes do sub-objeto 'detalhes' que vem do banco de dados
-                veiculo = new Carro(json.marca, json.modelo, json.ano, json.placa, json.cor, historico, json.detalhes?.numeroPortas, owner, visibility);
+                veiculo = new Carro(json.marca, json.modelo, json.ano, json.placa, json.cor, historico, json.detalhes?.numeroPortas);
                 break;
             case 'CarroEsportivo':
-                veiculo = new CarroEsportivo(json.marca, json.modelo, json.ano, json.placa, json.cor, historico, json.detalhes?.velocidadeMaximaTurbo, owner, visibility);
+                veiculo = new CarroEsportivo(json.marca, json.modelo, json.ano, json.placa, json.cor, historico, json.detalhes?.velocidadeMaximaTurbo);
                 if (json.hasOwnProperty('turboAtivado')) veiculo.turboAtivado = json.turboAtivado;
                 break;
             case 'Caminhao':
-                veiculo = new Caminhao(json.marca, json.modelo, json.ano, json.placa, json.cor, historico, json.detalhes?.capacidadeCarga, owner, visibility);
+                veiculo = new Caminhao(json.marca, json.modelo, json.ano, json.placa, json.cor, historico, json.detalhes?.capacidadeCarga);
                 if (json.hasOwnProperty('cargaAtual')) veiculo.cargaAtual = json.cargaAtual;
                 break;
             case 'Veiculo': // Para veículos genéricos
-                 veiculo = new Veiculo(json.marca, json.modelo, json.ano, json.placa, json.cor, historico, owner, visibility);
+                 veiculo = new Veiculo(json.marca, json.modelo, json.ano, json.placa, json.cor, historico);
                  break;
             default:
                 console.error("Veiculo.fromJSON: Tipo de veículo desconhecido:", json.tipoVeiculo, json);
                 // Cria um Veiculo genérico como fallback para não quebrar a aplicação
-                veiculo = new Veiculo(json.marca, json.modelo, json.ano, json.placa, json.cor, historico, owner, visibility);
+                veiculo = new Veiculo(json.marca, json.modelo, json.ano, json.placa, json.cor, historico);
                 break;
         }
         

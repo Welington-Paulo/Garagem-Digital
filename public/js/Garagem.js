@@ -12,7 +12,8 @@ class Garagem {
             console.error("Garagem.adicionarVeiculo: Tentativa de adicionar objeto que não é Veiculo.");
             return false;
         }
-        if (this.veiculos.find(v => v.placa.toUpperCase() === veiculo.placa.toUpperCase())) {
+        // <-- MUDANÇA: Verifica se já existe um veículo com o mesmo ID, além da placa.
+        if (this.veiculos.some(v => v.id === veiculo.id || v.placa.toUpperCase() === veiculo.placa.toUpperCase())) {
             return false; 
         }
         this.veiculos.push(veiculo);
@@ -107,40 +108,47 @@ class Garagem {
     }
 
     listarVeiculosParaCards() {
-        if (this.veiculos.length === 0) {
-            return "<p>Sua garagem está vazia. Adicione um veículo na aba 'Adicionar Veículo'!</p>";
-        }
-
-        const veiculosOrdenados = [...this.veiculos].sort((a,b) => a.placa.localeCompare(b.placa));
-
-        let listaHtml = veiculosOrdenados.map(veiculo => {
-            const isSelecionado = this.veiculoSelecionado === veiculo;
-            const detalhesCard = veiculo.exibirDetalhesCard ? veiculo.exibirDetalhesCard() : veiculo.exibirDetalhesBase();
-            
-            return `
-                <li class="veiculo-card ${isSelecionado ? 'card-selecionado' : ''}" data-placa-veiculo="${veiculo.placa}">
-                    <div class="card-header">
-                        <strong>${veiculo.constructor.name} - ${veiculo.modelo}</strong>
-                        <span>Placa: ${veiculo.placa}</span>
-                    </div>
-                    <p class="card-detalhes">${detalhesCard}</p>
-                    <div class="botoes-veiculo-card">
-                        <button class="btn-card-selecionar" data-placa="${veiculo.placa}">Interagir</button>
-                        <button class="btn-card-editar secondary" onclick="abrirModalEdicao('${veiculo.id}')">Editar</button>
-                        <button class="btn-card-remover danger" onclick="confirmarRemocaoVeiculo('${veiculo.id}', '${veiculo.modelo} (${veiculo.constructor.name})')">Remover</button>
-                    </div>
-                </li>`;
-        }).join('');
-
-        return `<ul>${listaHtml}</ul>`;
+        // Esta função foi movida para o script.js para ter acesso direto ao DOM e
+        // para facilitar a adição de botões com chamadas onclick.
+        // O método correto agora é `renderizarCardsVeiculosUI()` no script.js
+        console.warn("O método listarVeiculosParaCards() está obsoleto. A renderização agora é feita por renderizarCardsVeiculosUI() em script.js.");
+        return "<p>Renderizando veículos...</p>";
     }
 
     encontrarVeiculo(placa) {
+        if (!placa) return undefined;
         const placaUpperCase = placa.toUpperCase();
         return this.veiculos.find(v => v.placa.toUpperCase() === placaUpperCase);
     }
     
     encontrarVeiculoPorId(id) {
         return this.veiculos.find(v => v.id === id);
+    }
+
+    // <-- NOVO: FUNÇÃO ADICIONADA PARA CORRIGIR O BUG -->
+    /**
+     * Encontra um veículo pela placa.
+     * Esta função é um "alias" (apelido) para encontrarVeiculo, garantindo compatibilidade
+     * com partes do código que podem chamar por este nome.
+     * @param {string} placa A placa do veículo a ser encontrado.
+     * @returns {Veiculo|undefined} O objeto Veiculo ou undefined se não for encontrado.
+     */
+    encontrarVeiculoPorPlaca(placa) {
+        return this.encontrarVeiculo(placa);
+    }
+
+    // <-- NOVO: FUNÇÃO ADICIONADA PARA COMPATIBILIDADE COM O NOVO SCRIPT.JS -->
+    /**
+     * Encontra um veículo pelo seu ID e o define como o veículo selecionado.
+     * @param {string} id O ID (_id do MongoDB) do veículo.
+     * @returns {boolean} True se o veículo foi encontrado e selecionado, false caso contrário.
+     */
+    selecionarVeiculoPorId(id) {
+        const veiculoEncontrado = this.encontrarVeiculoPorId(id);
+        if (veiculoEncontrado) {
+            return this.selecionarVeiculoPorReferencia(veiculoEncontrado);
+        }
+        this.registrarInteracao(`Tentativa de selecionar veículo com ID "${id}" não encontrado.`, "aviso");
+        return false;
     }
 };
