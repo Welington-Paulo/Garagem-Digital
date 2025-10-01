@@ -2,19 +2,24 @@
 import mongoose from 'mongoose';
 
 const veiculoSchema = new mongoose.Schema({
-    // <-- NOVO CAMPO PARA ASSOCIAR O VEÍCULO AO USUÁRIO -->
     usuarioId: {
-        type: mongoose.Schema.Types.ObjectId, // Armazena o ID único de um documento de outra coleção
-        ref: 'Usuario',                       // Especifica que este ID se refere a um documento na coleção 'Usuario'
-        required: true                        // Garante que todo veículo TENHA um dono
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'Usuario',
+        required: true
+    },
+    // <-- NOVO CAMPO: Para exibir o nome do dono facilmente -->
+    nomeDono: {
+        type: String,
+        required: [true, 'O nome do dono é obrigatório.']
+    },
+    // <-- NOVO CAMPO: Para controlar a visibilidade -->
+    publico: {
+        type: Boolean,
+        default: false // Todo veículo começa como privado por padrão
     },
     placa: { 
         type: String, 
         required: [true, 'A placa é obrigatória.'],
-        // O índice unique agora precisa ser composto com o usuarioId para permitir
-        // que diferentes usuários cadastrem a mesma placa (ex: carros antigos com placas iguais em estados diferentes)
-        // Uma abordagem mais simples é remover o 'unique' aqui e validar no backend, como já está.
-        // unique: true, // <-- Removido para simplificar, a validação de placa duplicada por usuário será feita na lógica do app.
         uppercase: true,
         trim: true,
         match: [/^[A-Z]{3}[0-9][A-Z0-9][0-9]{2}$|^[A-Z]{3}[0-9]{4}$/, 'Formato de placa inválido.']
@@ -54,9 +59,7 @@ const veiculoSchema = new mongoose.Schema({
     timestamps: true 
 });
 
-// Criando um índice composto para garantir que a placa seja única POR USUÁRIO
 veiculoSchema.index({ placa: 1, usuarioId: 1 }, { unique: true });
-
 
 const VeiculoModel = mongoose.model('Veiculo', veiculoSchema);
 
