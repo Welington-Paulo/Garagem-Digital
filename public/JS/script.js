@@ -9,6 +9,13 @@ document.addEventListener('DOMContentLoaded', () => {
     const garagem = new Garagem();
     const backendBaseUrl = 'http://localhost:3001';
 
+    // Estado do Planejador de Viagem
+    let previsaoCompletaCache = null;
+    let cidadeCache = "";
+    let diasFiltro = 5;
+    let destacarFrio = false;
+    let destacarQuente = false;
+
     // Autenticação
     const authContainer = document.getElementById('auth-container');
     const appContainer = document.getElementById('app-container');
@@ -18,7 +25,15 @@ document.addEventListener('DOMContentLoaded', () => {
     const formRegistrar = document.getElementById('form-registrar');
     const linkParaRegistrar = document.getElementById('link-para-registrar');
     const linkParaLogin = document.getElementById('link-para-login');
-    const btnLogout = document.getElementById('btn-logout');
+
+    // Header e Perfil
+    const perfilDropdown = document.getElementById('perfil-dropdown');
+    const perfilBtn = document.getElementById('perfil-btn');
+    const perfilAvatarImg = document.getElementById('perfil-avatar-img');
+    const perfilNomeSpan = document.getElementById('perfil-nome-span');
+    const perfilDropdownContent = document.getElementById('perfil-dropdown-content');
+    const linkEditarPerfil = document.getElementById('link-editar-perfil');
+    const linkSair = document.getElementById('link-sair');
 
     // Navegação e UI Geral
     const notificacaoArea = document.getElementById('notificacao-area');
@@ -27,6 +42,13 @@ document.addEventListener('DOMContentLoaded', () => {
     const menuHamburgerBtn = document.getElementById('menu-hamburger-btn');
     const menuCloseBtn = document.getElementById('menu-close-btn');
     const mainNav = document.getElementById('main-nav');
+
+    // Aba "Meu Perfil"
+    const formEditarPerfil = document.getElementById('form-editar-perfil');
+    const formAlterarSenha = document.getElementById('form-alterar-senha');
+    const btnDeletarConta = document.getElementById('btn-deletar-conta');
+    const editarPerfilImg = document.getElementById('editar-perfil-img');
+    const perfilListaVeiculosDiv = document.getElementById('perfil-lista-veiculos');
 
     // Aba Adicionar Veículo
     const formAddVeiculo = document.getElementById('form-add-veiculo');
@@ -63,7 +85,10 @@ document.addEventListener('DOMContentLoaded', () => {
     const searchButtonViagem = document.getElementById('searchButtonViagem');
     const weatherResultDivViagem = document.getElementById('weatherResultViagem');
     const errorMessageDivViagem = document.getElementById('errorMessageViagem');
-
+    const controlesPrevisao = document.getElementById('controles-previsao');
+    const btnsFiltroDias = document.querySelectorAll('.btn-filtro-dias');
+    const checkDestaqueFrio = document.getElementById('destaque-frio');
+    const checkDestaqueQuente = document.getElementById('destaque-quente');
 
     // ===================================================================
     // PARTE 2: FUNÇÕES UTILITÁRIAS
@@ -90,12 +115,17 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // ===================================================================
-    // PARTE 3: LÓGICA DE AUTENTICAÇÃO
+    // PARTE 3: LÓGICA DE AUTENTICAÇÃO E SESSÃO
     // ===================================================================
 
     const salvarToken = (token) => localStorage.setItem('authToken', token);
     const obterToken = () => localStorage.getItem('authToken');
-    const removerToken = () => localStorage.removeItem('authToken');
+    const removerToken = () => {
+        localStorage.removeItem('authToken');
+        localStorage.removeItem('usuario');
+    };
+    const salvarUsuario = (usuario) => localStorage.setItem('usuario', JSON.stringify(usuario));
+    const obterUsuario = () => JSON.parse(localStorage.getItem('usuario'));
 
     const mostrarTelaAuth = () => {
         authContainer.classList.remove('hidden');
@@ -107,29 +137,17 @@ document.addEventListener('DOMContentLoaded', () => {
     const mostrarApp = () => {
         authContainer.classList.add('hidden');
         appContainer.classList.remove('hidden');
+        atualizarHeaderUsuario();
         inicializarDadosDoApp();
     };
-
-    linkParaRegistrar.addEventListener('click', (e) => {
-        e.preventDefault();
-        loginView.classList.add('hidden');
-        registrarView.classList.remove('hidden');
-    });
-
-    linkParaLogin.addEventListener('click', (e) => {
-        e.preventDefault();
-        registrarView.classList.add('hidden');
-        loginView.classList.remove('hidden');
-    });
-
-    btnLogout.addEventListener('click', () => {
-        removerToken();
-        garagem.veiculos = [];
-        garagem.veiculoSelecionado = null;
-        if (garagemDisplayCards) garagemDisplayCards.innerHTML = '<p>Você saiu da sua conta.</p>';
-        mostrarTelaAuth();
-        exibirNotificacao("Você saiu com sucesso.", "info");
-    });
+    
+    function atualizarHeaderUsuario() {
+        const usuario = obterUsuario();
+        if (usuario) {
+            perfilAvatarImg.src = usuario.foto || 'images/default-avatar.png';
+            perfilNomeSpan.textContent = usuario.nome;
+        }
+    }
 
     formLogin.addEventListener('submit', async (e) => {
         e.preventDefault();
@@ -147,7 +165,8 @@ document.addEventListener('DOMContentLoaded', () => {
             const resultado = await response.json();
             if (!response.ok) throw new Error(resultado.error);
             salvarToken(resultado.token);
-            exibirNotificacao(`Bem-vindo de volta, ${resultado.nomeUsuario}!`, 'sucesso');
+            salvarUsuario(resultado.usuario);
+            exibirNotificacao(`Bem-vindo de volta, ${resultado.usuario.nome}!`, 'sucesso');
             mostrarApp();
             formLogin.reset();
         } catch (error) {
@@ -186,9 +205,10 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     // ===================================================================
-    // PARTE 4: LÓGICA DA APLICAÇÃO (NAVEGAÇÃO E GARAGEM)
+    // PARTE 4: LÓGICA DA APLICAÇÃO (NAVEGAÇÃO E GERENCIAMENTO)
     // ===================================================================
 
+    // --- Navegação Principal e Menu Hambúrguer ---
     if (menuHamburgerBtn && mainNav && menuCloseBtn) {
         menuHamburgerBtn.addEventListener('click', () => mainNav.setAttribute('data-visible', 'true'));
         menuCloseBtn.addEventListener('click', () => mainNav.setAttribute('data-visible', 'false'));
@@ -213,6 +233,131 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
+    // --- Menu Dropdown de Perfil ---
+    perfilBtn.addEventListener('click', () => {
+        perfilDropdownContent.classList.toggle('show');
+    });
+
+    window.addEventListener('click', (event) => {
+        if (!perfilDropdown.contains(event.target)) {
+            perfilDropdownContent.classList.remove('show');
+        }
+    });
+
+    linkEditarPerfil.addEventListener('click', (e) => {
+        e.preventDefault();
+        document.querySelector('.nav-button[data-target="tab-perfil"]').click();
+        perfilDropdownContent.classList.remove('show');
+        preencherFormulariosPerfil();
+    });
+
+    linkSair.addEventListener('click', (e) => {
+        e.preventDefault();
+        removerToken();
+        mostrarTelaAuth();
+        exibirNotificacao("Você saiu com sucesso.", "info");
+    });
+    
+    // --- Lógica da Aba "Meu Perfil" ---
+    async function preencherFormulariosPerfil() {
+        const usuario = obterUsuario();
+        if (usuario) {
+            document.getElementById('editar-nome').value = usuario.nome;
+            document.getElementById('editar-email').value = usuario.email;
+            const fotoUrl = usuario.foto === 'images/default-avatar.png' ? '' : usuario.foto;
+            document.getElementById('editar-foto-url').value = fotoUrl || '';
+            editarPerfilImg.src = usuario.foto || 'images/default-avatar.png';
+        }
+        if (perfilListaVeiculosDiv) {
+            perfilListaVeiculosDiv.innerHTML = '';
+            if (garagem.veiculos.length === 0) {
+                perfilListaVeiculosDiv.innerHTML = '<p class="placeholder">Você ainda não cadastrou veículos.</p>';
+                return;
+            }
+            garagem.veiculos.forEach(v => {
+                const item = document.createElement('div');
+                item.className = 'perfil-veiculo-item';
+                item.innerHTML = `
+                    <i data-feather="truck"></i>
+                    <div class="perfil-veiculo-item-info">
+                        <strong>${v.marca} ${v.modelo}</strong>
+                        <span>Placa: ${v.placa}</span>
+                    </div>
+                `;
+                perfilListaVeiculosDiv.appendChild(item);
+            });
+            _renderFeatherIcons();
+        }
+    }
+
+    formEditarPerfil.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const token = obterToken();
+        const dadosAtualizados = {
+            nome: document.getElementById('editar-nome').value,
+            email: document.getElementById('editar-email').value,
+            fotoPerfil: document.getElementById('editar-foto-url').value,
+        };
+        try {
+            const response = await fetch(`${backendBaseUrl}/api/usuarios/perfil`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+                body: JSON.stringify(dadosAtualizados)
+            });
+            const resultado = await response.json();
+            if (!response.ok) throw new Error(resultado.error);
+            salvarUsuario(resultado.usuario);
+            atualizarHeaderUsuario();
+            preencherFormulariosPerfil();
+            exibirNotificacao('Perfil atualizado com sucesso!', 'sucesso');
+        } catch (error) {
+            exibirNotificacao(`Erro: ${error.message}`, 'erro');
+        }
+    });
+
+    formAlterarSenha.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const token = obterToken();
+        const dadosSenha = {
+            senhaAntiga: document.getElementById('senha-antiga').value,
+            novaSenha: document.getElementById('nova-senha').value,
+        };
+        try {
+            const response = await fetch(`${backendBaseUrl}/api/usuarios/senha`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+                body: JSON.stringify(dadosSenha)
+            });
+            const resultado = await response.json();
+            if (!response.ok) throw new Error(resultado.error);
+            exibirNotificacao('Senha alterada com sucesso!', 'sucesso');
+            formAlterarSenha.reset();
+        } catch (error) {
+            exibirNotificacao(`Erro: ${error.message}`, 'erro');
+        }
+    });
+
+    btnDeletarConta.addEventListener('click', async () => {
+        if (confirm('ATENÇÃO: Você tem certeza que deseja deletar sua conta? Esta ação é permanente e todos os seus dados, incluindo veículos, serão perdidos.')) {
+            const token = obterToken();
+            try {
+                const response = await fetch(`${backendBaseUrl}/api/usuarios/conta`, {
+                    method: 'DELETE',
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                const resultado = await response.json();
+                if (!response.ok) throw new Error(resultado.error);
+                removerToken();
+                mostrarTelaAuth();
+                exibirNotificacao('Sua conta foi deletada com sucesso.', 'info');
+            } catch (error) {
+                exibirNotificacao(`Erro: ${error.message}`, 'erro');
+            }
+        }
+    });
+
+    // --- Funções de Renderização e Atualização da UI ---
+    
     function renderizarTudoUI() {
         renderizarCardsVeiculosUI();
         atualizarPainelInteracaoUI();
@@ -617,19 +762,28 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     async function carregarRecursosPublicos() {
+        if (!cardsVeiculosDestaqueDiv || !listaServicosOferecidosUl) return;
         try {
             const [destaquesRes, servicosRes] = await Promise.all([
                 fetch(`${backendBaseUrl}/api/garagem/veiculos-destaque`),
                 fetch(`${backendBaseUrl}/api/garagem/servicos-oferecidos`)
             ]);
+            if (!destaquesRes.ok || !servicosRes.ok) throw new Error('Falha ao carregar recursos.');
             const destaques = await destaquesRes.json();
             const servicos = await servicosRes.json();
-            if (cardsVeiculosDestaqueDiv) {
-                cardsVeiculosDestaqueDiv.innerHTML = destaques.map(v => `<div class="veiculo-destaque-card">...</div>`).join('');
-            }
-            if (listaServicosOferecidosUl) {
-                listaServicosOferecidosUl.innerHTML = servicos.map(s => `<li><strong>${s.nome}</strong>: ${s.descricao}</li>`).join('');
-            }
+            
+            cardsVeiculosDestaqueDiv.innerHTML = destaques.map(v => 
+                `<div class="veiculo-destaque-card">
+                    <img src="${v.imagemUrl || 'images/placeholder_car.png'}" alt="${v.modelo}">
+                    <h4>${v.modelo}</h4>
+                    <p class="ano-destaque">Ano: ${v.ano}</p>
+                    <p class="texto-destaque">${v.destaque}</p>
+                </div>`
+            ).join('');
+            
+            listaServicosOferecidosUl.innerHTML = servicos.map(s => 
+                `<li><strong>${s.nome}</strong>: ${s.descricao}</li>`
+            ).join('');
         } catch (error) {
             console.error("Erro ao carregar recursos:", error);
         }
@@ -645,14 +799,53 @@ document.addEventListener('DOMContentLoaded', () => {
             const response = await fetch(`${backendBaseUrl}/api/forecast/${city}`);
             const data = await response.json();
             if(!response.ok) throw new Error(data.error);
-            // Lógica para exibir os dados do tempo...
-            weatherResultDivViagem.innerHTML = `<h3>Previsão para ${data.city.name}</h3>`;
+            processarEExibirPrevisao(data);
         } catch (error) {
             errorMessageDivViagem.textContent = error.message;
             errorMessageDivViagem.style.display = 'block';
             weatherResultDivViagem.innerHTML = '';
         }
     });
+
+    function processarEExibirPrevisao(data) {
+        if (!data || !data.list || data.list.length === 0) {
+            weatherResultDivViagem.innerHTML = '<p class="placeholder">Dados de previsão não encontrados.</p>';
+            return;
+        }
+        const previsoesPorDia = {};
+        data.list.forEach(item => {
+            const diaKey = new Date(item.dt * 1000).toISOString().split('T')[0];
+            if (!previsoesPorDia[diaKey]) {
+                previsoesPorDia[diaKey] = {
+                    dataFormatada: new Date(item.dt * 1000).toLocaleDateString('pt-BR', { weekday: 'long', day: '2-digit', month: 'short' }),
+                    temperaturas: [], icones: [], descricoes: []
+                };
+            }
+            previsoesPorDia[diaKey].temperaturas.push(item.main.temp);
+            previsoesPorDia[diaKey].icones.push(item.weather[0].icon);
+            previsoesPorDia[diaKey].descricoes.push(item.weather[0].description);
+        });
+        let html = `<h3><i data-feather="sun"></i> Previsão para ${data.city.name}</h3><div class="forecast-container">`;
+        for (const dia in previsoesPorDia) {
+            const diaInfo = previsoesPorDia[dia];
+            const temp_min = Math.min(...diaInfo.temperaturas).toFixed(0);
+            const temp_max = Math.max(...diaInfo.temperaturas).toFixed(0);
+            const iconeRepresentativo = diaInfo.icones[Math.floor(diaInfo.icones.length / 2)];
+            const descricaoRepresentativa = diaInfo.descricoes[Math.floor(diaInfo.descricoes.length / 2)];
+            html += `
+                <div class="forecast-day-card">
+                    <h4>${diaInfo.dataFormatada}</h4>
+                    <img src="https://openweathermap.org/img/wn/${iconeRepresentativo}@2x.png" alt="${descricaoRepresentativa}">
+                    <p class="temp-range"><span class="temp-max">${temp_max}°C</span> / <span class="temp-min">${temp_min}°C</span></p>
+                    <p class="description">${descricaoRepresentativa}</p>
+                </div>
+            `;
+        }
+        html += '</div>';
+        weatherResultDivViagem.innerHTML = html;
+        _renderFeatherIcons();
+    }
+
 
     // ===================================================================
     // PARTE 5: INICIALIZAÇÃO DA APLICAÇÃO
@@ -670,7 +863,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function checarLoginInicial() {
         const token = obterToken();
-        if (token) {
+        const usuario = obterUsuario();
+        if (token && usuario) {
             mostrarApp();
         } else {
             mostrarTelaAuth();

@@ -1,33 +1,28 @@
-// server.js (Versão Absolutamente Completa e Final)
+// server.js (Versão Absolutamente Completa com Gerenciamento de Perfil)
 
 // ===================================================================
 // PARTE 1: IMPORTAÇÕES E CONFIGURAÇÃO INICIAL
 // ===================================================================
-
 import express from 'express';
 import dotenv from 'dotenv';
 import axios from 'axios';
-import path from 'path';
-import { dirname } from 'path';
-import { fileURLToPath } from 'url';
 import mongoose from 'mongoose';
 import cors from 'cors';
 import jwt from 'jsonwebtoken';
 import bcrypt from 'bcryptjs';
+import path from 'path';
+import { dirname } from 'path';
+import { fileURLToPath } from 'url';
 
-// Importação dos Models
+// Models
 import VeiculoModel from './models/Veiculo.js';
 import ManutencaoModel from './models/Manutencao.js';
 import UsuarioModel from './models/Usuario.js';
 
-// Configuração para obter __dirname em projetos ES Module
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
-
-// Carregar variáveis de ambiente do arquivo .env
 dotenv.config();
 
-// Inicialização do Express e definição das constantes
 const app = express();
 const PORT = process.env.PORT || 3001;
 const API_KEY_OPENWEATHER = process.env.OPENWEATHER_API_KEY;
@@ -56,19 +51,17 @@ async function connectToDatabase() {
     }
 }
 
-// Middlewares Globais
 app.use(cors());
 app.use(express.json()); 
 app.use(express.static(path.join(__dirname, 'public')));
 
 // ===================================================================
-// PARTE 3: MIDDLEWARE DE AUTENTICAÇÃO (PROTETOR DE ROTAS)
+// PARTE 3: MIDDLEWARE DE AUTENTICAÇÃO
 // ===================================================================
 
 const protegerRota = (req, res, next) => {
     const authHeader = req.headers['authorization'];
-    const token = authHeader && authHeader.split(' ')[1]; // Formato "Bearer TOKEN"
-
+    const token = authHeader && authHeader.split(' ')[1];
     if (!token) {
         return res.status(401).json({ error: 'Acesso negado. Nenhum token fornecido.' });
     }
@@ -128,15 +121,26 @@ app.post('/api/auth/login', async (req, res) => {
         if (!senhaCorreta) {
             return res.status(401).json({ error: 'Credenciais inválidas.' });
         }
-        const token = jwt.sign({ id: usuario._id, nome: usuario.nome }, JWT_SECRET, { expiresIn: '8h' });
-        res.status(200).json({ token, nomeUsuario: usuario.nome });
+        const token = jwt.sign(
+            { id: usuario._id, nome: usuario.nome, foto: usuario.fotoPerfil },
+            JWT_SECRET, 
+            { expiresIn: '8h' }
+        );
+        res.status(200).json({ 
+            token, 
+            usuario: {
+                nome: usuario.nome,
+                email: usuario.email,
+                foto: usuario.fotoPerfil
+            }
+        });
     } catch (error) {
         console.error("[ERRO NO LOGIN]:", error);
         res.status(500).json({ error: 'Erro interno do servidor ao fazer login.' });
     }
 });
 
-// --- Endpoints de Veículos (Rotas Protegidas e Públicas) ---
+// --- Endpoints de Veículos ---
 
 app.post('/api/veiculos', protegerRota, async (req, res) => {
     try {
@@ -207,29 +211,19 @@ app.delete('/api/veiculos/:id', protegerRota, async (req, res) => {
     }
 });
 
-// --- Endpoints de Manutenção (Protegidos) ---
-
+// --- Endpoints de Manutenção ---
 app.post('/api/veiculos/:veiculoId/manutencoes', protegerRota, async (req, res) => {
     const { veiculoId } = req.params;
     try {
-        if (!mongoose.Types.ObjectId.isValid(veiculoId)) {
-            return res.status(400).json({ error: 'O ID do veículo fornecido é inválido.' });
-        }
+        if (!mongoose.Types.ObjectId.isValid(veiculoId)) { return res.status(400).json({ error: 'O ID do veículo fornecido é inválido.' }); }
         const veiculo = await VeiculoModel.findById(veiculoId);
-        if (!veiculo) {
-            return res.status(404).json({ error: 'Veículo não encontrado para adicionar manutenção.' });
-        }
-        if (veiculo.usuarioId.toString() !== req.usuarioId) {
-             return res.status(403).json({ error: 'Acesso não autorizado a este veículo.' });
-        }
+        if (!veiculo) { return res.status(404).json({ error: 'Veículo não encontrado para adicionar manutenção.' }); }
+        if (veiculo.usuarioId.toString() !== req.usuarioId) { return res.status(403).json({ error: 'Acesso não autorizado a este veículo.' }); }
         const novaManutencaoData = { ...req.body, veiculo: veiculoId };
         const manutencaoCriada = await ManutencaoModel.create(novaManutencaoData);
         res.status(201).json(manutencaoCriada);
     } catch (error) {
-        if (error.name === 'ValidationError') {
-             const messages = Object.values(error.errors).map(val => val.message);
-             return res.status(400).json({ error: messages.join(' ') });
-        }
+        if (error.name === 'ValidationError') { const messages = Object.values(error.errors).map(val => val.message); return res.status(400).json({ error: messages.join(' ') }); }
         console.error(`[BACKEND] Erro ao criar manutenção para o veículo ${veiculoId}:`, error);
         res.status(500).json({ error: 'Erro interno do servidor ao criar manutenção.' });
     }
@@ -238,13 +232,9 @@ app.post('/api/veiculos/:veiculoId/manutencoes', protegerRota, async (req, res) 
 app.get('/api/veiculos/:veiculoId/manutencoes', protegerRota, async (req, res) => {
     const { veiculoId } = req.params;
     try {
-        if (!mongoose.Types.ObjectId.isValid(veiculoId)) {
-             return res.status(400).json({ error: 'ID de veículo inválido.' });
-        }
+        if (!mongoose.Types.ObjectId.isValid(veiculoId)) { return res.status(400).json({ error: 'ID de veículo inválido.' }); }
         const veiculoExiste = await VeiculoModel.findOne({ _id: veiculoId, usuarioId: req.usuarioId });
-        if (!veiculoExiste) {
-            return res.status(404).json({ error: 'Veículo não encontrado ou não pertence a você.' });
-        }
+        if (!veiculoExiste) { return res.status(404).json({ error: 'Veículo não encontrado ou não pertence a você.' }); }
         const manutencoes = await ManutencaoModel.find({ veiculo: veiculoId }).sort({ data: -1 });
         res.status(200).json(manutencoes);
     } catch (error) {
@@ -253,21 +243,75 @@ app.get('/api/veiculos/:veiculoId/manutencoes', protegerRota, async (req, res) =
     }
 });
 
-// --- Outras Rotas Públicas (Arsenal de Dados, OpenWeather) ---
 
+// --- Endpoints de Gerenciamento de Perfil ---
+app.get('/api/usuarios/perfil', protegerRota, async (req, res) => {
+    try {
+        const usuario = await UsuarioModel.findById(req.usuarioId).select('-senha');
+        if (!usuario) { return res.status(404).json({ error: 'Usuário não encontrado.' }); }
+        res.json(usuario);
+    } catch (error) {
+        console.error("[ERRO AO BUSCAR PERFIL]:", error);
+        res.status(500).json({ error: 'Erro ao buscar dados do perfil.' });
+    }
+});
+
+app.put('/api/usuarios/perfil', protegerRota, async (req, res) => {
+    const { nome, email, fotoPerfil } = req.body;
+    try {
+        const usuario = await UsuarioModel.findById(req.usuarioId);
+        if (!usuario) { return res.status(404).json({ error: 'Usuário não encontrado.' }); }
+        usuario.nome = nome || usuario.nome;
+        usuario.email = email || usuario.email;
+        usuario.fotoPerfil = fotoPerfil || usuario.fotoPerfil;
+        await usuario.save();
+        res.json({ message: 'Perfil atualizado com sucesso!', usuario: { nome: usuario.nome, email: usuario.email, foto: usuario.fotoPerfil } });
+    } catch (error) {
+        console.error("[ERRO AO ATUALIZAR PERFIL]:", error);
+        if (error.code === 11000) return res.status(409).json({ error: 'Este e-mail já está em uso.' });
+        res.status(500).json({ error: 'Erro ao atualizar o perfil.' });
+    }
+});
+
+app.put('/api/usuarios/senha', protegerRota, async (req, res) => {
+    const { senhaAntiga, novaSenha } = req.body;
+    if (!senhaAntiga || !novaSenha) { return res.status(400).json({ error: 'Todos os campos são obrigatórios.' }); }
+    try {
+        const usuario = await UsuarioModel.findById(req.usuarioId);
+        const senhaCorreta = await bcrypt.compare(senhaAntiga, usuario.senha);
+        if (!senhaCorreta) { return res.status(401).json({ error: 'A senha antiga está incorreta.' }); }
+        usuario.senha = novaSenha;
+        await usuario.save();
+        res.json({ message: 'Senha alterada com sucesso!' });
+    } catch (error) {
+        console.error("[ERRO AO ALTERAR SENHA]:", error);
+        res.status(500).json({ error: 'Erro ao alterar a senha.' });
+    }
+});
+
+app.delete('/api/usuarios/conta', protegerRota, async (req, res) => {
+    try {
+        await VeiculoModel.deleteMany({ usuarioId: req.usuarioId });
+        await UsuarioModel.findByIdAndDelete(req.usuarioId);
+        res.json({ message: 'Sua conta e todos os seus dados foram deletados com sucesso.' });
+    } catch (error) {
+        console.error("[ERRO AO DELETAR CONTA]:", error);
+        res.status(500).json({ error: 'Erro ao deletar a conta.' });
+    }
+});
+
+
+// --- Outras Rotas Públicas (Arsenal de Dados, OpenWeather) ---
 const veiculosDestaque = [ { id: "vd001", modelo: "Ford Maverick Híbrido", ano: 2024, destaque: "Performance sustentável.", imagemUrl: "images/maverick_hybrid.jpg" } ];
 const servicosGaragem = [ { id: "svc001", nome: "Diagnóstico Eletrônico", descricao: "Verificação de sistemas eletrônicos.", precoEstimado: "A partir de R$ 150,00" } ];
 const dicasManutencao = [ { id: "d001", titulo: "Calibragem dos Pneus", dica: "Mantenha a calibragem correta.", tipoAplicavel: ["geral"] } ];
-
 app.get('/api/garagem/veiculos-destaque', (req, res) => res.json(veiculosDestaque));
 app.get('/api/garagem/servicos-oferecidos', (req, res) => res.json(servicosGaragem));
 app.get('/api/garagem/dicas-manutencao', (req, res) => res.json(dicasManutencao));
 
 app.get('/api/forecast/:city', async (req, res) => {
     const { city } = req.params;
-    if (!API_KEY_OPENWEATHER) {
-        return res.status(500).json({ error: 'Chave da API OpenWeather não configurada.' });
-    }
+    if (!API_KEY_OPENWEATHER) { return res.status(500).json({ error: 'Chave da API OpenWeather não configurada.' }); }
     const url = `https://api.openweathermap.org/data/2.5/forecast?q=${encodeURIComponent(city)}&appid=${API_KEY_OPENWEATHER}&units=metric&lang=pt_br`;
     try {
         const response = await axios.get(url);
@@ -300,5 +344,4 @@ async function startServer() {
     });
 }
 
-// Inicia todo o processo
 startServer();

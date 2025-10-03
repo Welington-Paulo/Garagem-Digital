@@ -63,7 +63,19 @@
                 <i data-feather="menu"></i>
             </button>
             <h1>INTEL-Car</h1>
-            <button id="btn-logout" title="Sair da conta"><i data-feather="log-out"></i> Sair</button>
+            
+            <!-- NOVO MENU DROPDOWN DE PERFIL -->
+            <div id="perfil-dropdown" class="perfil-dropdown">
+                <button id="perfil-btn" class="perfil-btn">
+                    <img id="perfil-avatar-img" src="images/default-avatar.png" alt="Avatar do usuário" class="perfil-avatar">
+                    <span id="perfil-nome-span">Usuário</span>
+                    <i data-feather="chevron-down"></i>
+                </button>
+                <div id="perfil-dropdown-content" class="perfil-dropdown-content">
+                    <a href="#" id="link-editar-perfil"><i data-feather="user"></i> Meu Perfil</a>
+                    <a href="#" id="link-sair"><i data-feather="log-out"></i> Sair</a>
+                </div>
+            </div>
         </header>
 
         <nav id="main-nav" class="main-navigation" data-visible="false">
@@ -87,6 +99,10 @@
             </button>
             <button class="nav-button" data-target="tab-planejar-viagem">
                 <i data-feather="map-pin"></i> Planejar Viagem
+            </button>
+            <!-- NOVO BOTÃO DE NAVEGAÇÃO PARA O PERFIL -->
+            <button class="nav-button" data-target="tab-perfil">
+                <i data-feather="settings"></i> Meu Perfil
             </button>
         </nav>
 
@@ -140,18 +156,14 @@
 
             <section id="tab-consultas" class="tab-content"><h2><i data-feather="file-text"></i>Consultas</h2><div class="consulta-item"><h3><i data-feather="calendar"></i>Agendamentos</h3><div id="agendamentos-futuros-view"><p>Nenhum.</p></div></div><div class="consulta-item"><h3><i data-feather="bell"></i>Lembretes</h3><div id="lembretes-manutencao-view"><p>Nenhum.</p></div></div><div class="consulta-item"><h3><i data-feather="clipboard"></i>Históricos</h3><div id="historicos-consolidados-view"><p>Nenhum.</p></div></div></section>
             
-            <!-- ABA RECURSOS DA GARAGEM (MODIFICADA) -->
             <section id="tab-recursos" class="tab-content">
                 <h2><i data-feather="gift"></i>Recursos e Destaques da Garagem</h2>
-
-                <!-- NOVA SEÇÃO PARA VEÍCULOS PÚBLICOS -->
                 <div class="recurso-section">
                     <h3><i data-feather="globe"></i> Vitrine Pública da Comunidade</h3>
                     <div id="cards-veiculos-publicos" class="cards-container">
                         <p class="placeholder">Carregando veículos públicos...</p>
                     </div>
                 </div>
-
                 <div class="recurso-section">
                     <h3><i data-feather="star"></i>Veículos em Destaque (Exemplo)</h3>
                     <div id="cards-veiculos-destaque" class="cards-container"><p class="placeholder">Carregando...</p></div>
@@ -166,8 +178,116 @@
                 </div>
             </section>
 
-            <section id="tab-planejar-viagem" class="tab-content"><h2><i data-feather="navigation-2"></i>Planejador de Viagem</h2><div class="form-viagem"><div><label for="viagem-veiculo">Veículo:</label><select id="viagem-veiculo"><option value="">-- Selecione --</option></select></div><div><label for="cityInputViagem">Destino:</label><input type="text" id="cityInputViagem" placeholder="Ex: London"></div><button id="searchButtonViagem" class="button-style"><i data-feather="search"></i> Clima</button></div><div id="errorMessageViagem" class="notificacao erro" style="display:none;margin-bottom:1rem;"></div><div id="weatherResultViagem" style="margin-top:1rem;"><p class="placeholder">Digite uma cidade.</p></div></section>
+<section id="tab-planejar-viagem" class="tab-content">
+    <h2><i data-feather="navigation-2"></i>Planejador de Viagem</h2>
+    <div class="form-viagem">
+        <div>
+            <label for="viagem-veiculo">Veículo:</label>
+            <select id="viagem-veiculo"><option value="">-- Selecione --</option></select>
+        </div>
+        <div>
+            <label for="cityInputViagem">Destino:</label>
+            <input type="text" id="cityInputViagem" placeholder="Ex: São Paulo">
+        </div>
+        <button id="searchButtonViagem" class="button-style"><i data-feather="search"></i> Buscar Clima</button>
+    </div>
+
+    <div id="errorMessageViagem" class="notificacao erro" style="display:none; margin-bottom:1rem;"></div>
+
+    <!-- NOVOS CONTROLES DE FILTRO E DESTAQUE -->
+    <div id="controles-previsao" style="display:none;">
+        <h4><i data-feather="settings"></i> Opções de Visualização</h4>
+        <div class="filtros-previsao">
+            <label>Mostrar Previsão para:</label>
+            <button class="btn-filtro-dias button-style-outline" data-dias="1">Hoje</button>
+            <button class="btn-filtro-dias button-style-outline" data-dias="3">3 Dias</button>
+            <button class="btn-filtro-dias button-style-outline active" data-dias="5">5 Dias</button>
+            <button class="btn-filtro-dias button-style-outline" data-dias="7">7 Dias</button>
+        </div>
+        <div class="destaques-previsao">
+            <label>Destacar:</label>
+            <label class="checkbox-container">
+                <input type="checkbox" id="destaque-frio">
+                <span class="checkmark"></span> Frio (&lt; 20°C) <i data-feather="thermometer" class="feather-inline" style="color:var(--info);"></i>
+            </label>
+            <label class="checkbox-container">
+                <input type="checkbox" id="destaque-quente">
+                <span class="checkmark"></span> Quente (&gt; 30°C) <i data-feather="thermometer" class="feather-inline" style="color:var(--error);"></i>
+            </label>
+        </div>
+    </div>
+
+    <div id="weatherResultViagem" style="margin-top:1rem;">
+        <p class="placeholder">Digite uma cidade para ver a previsão do tempo.</p>
+    </div>
+</section>
+
+            <!-- NOVA ABA: MEU PERFIL -->
+            <section id="tab-perfil" class="tab-content">
+                <h2><i data-feather="user"></i> Gerenciamento de Perfil</h2>
+                <div class="perfil-layout">
+                    <!-- Coluna da Esquerda: Formulários de Edição -->
+                    <div class="perfil-coluna-forms">
+                        <!-- Card de Informações Gerais -->
+                        <div class="perfil-card">
+                            <h4>Informações da Conta</h4>
+                            <form id="form-editar-perfil">
+                                <div class="perfil-foto-container">
+                                    <img id="editar-perfil-img" src="images/default-avatar.png" alt="Avatar do usuário">
+                                </div>
+                                <div>
+                                    <label for="editar-nome">Nome de Usuário:</label>
+                                    <input type="text" id="editar-nome" required>
+                                </div>
+                                <div>
+                                    <label for="editar-email">Email:</label>
+                                    <input type="email" id="editar-email" required>
+                                </div>
+                                <div>
+                                    <label for="editar-foto-url">URL da Foto de Perfil:</label>
+                                    <input type="text" id="editar-foto-url" placeholder="https://exemplo.com/sua-imagem.png">
+                                </div>
+                                <button type="submit"><i data-feather="save"></i> Salvar Informações</button>
+                            </form>
+                        </div>
+                        
+                        <!-- Card de Alteração de Senha -->
+                        <div class="perfil-card">
+                            <h4>Alterar Senha</h4>
+                            <form id="form-alterar-senha">
+                                <div>
+                                    <label for="senha-antiga">Senha Atual:</label>
+                                    <input type="password" id="senha-antiga" required autocomplete="current-password">
+                                </div>
+                                <div>
+                                    <label for="nova-senha">Nova Senha:</label>
+                                    <input type="password" id="nova-senha" required minlength="6" autocomplete="new-password">
+                                </div>
+                                <button type="submit"><i data-feather="lock"></i> Alterar Senha</button>
+                            </form>
+                        </div>
+                        
+                        <!-- Card de Zona de Perigo -->
+                        <div class="perfil-card danger-zone">
+                            <h4>Zona de Perigo</h4>
+                            <p>Esta ação é irreversível. Todos os seus veículos e dados serão permanentemente deletados.</p>
+                            <button id="btn-deletar-conta" class="danger-button"><i data-feather="trash-2"></i> Deletar Minha Conta</button>
+                        </div>
+                    </div>
+
+                    <!-- Coluna da Direita: Painel de Veículos -->
+                    <div class="perfil-coluna-veiculos">
+                        <div class="perfil-card">
+                            <h4><i data-feather="grid"></i> Meus Veículos Cadastrados</h4>
+                            <div id="perfil-lista-veiculos" class="perfil-lista-veiculos">
+                                <p class="placeholder">Carregando seus veículos...</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
             
+            <!-- MODAL DE EDIÇÃO DE VEÍCULO -->
             <div id="modal-editar-veiculo" class="modal">
                 <div class="modal-content">
                     <button class="close-button" onclick="window.fecharModalEdicao()" aria-label="Fechar"><i data-feather="x"></i></button>
@@ -186,6 +306,7 @@
                 </div>
             </div>
         </main>
+        
         <footer><p>© <span id="ano-atual"></span> Garagem Inteligente Unificada.</p></footer>
     </div>
     

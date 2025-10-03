@@ -1,4 +1,4 @@
-// models/Usuario.js
+// models/Usuario.js (Versão Final com Foto de Perfil)
 import mongoose from 'mongoose';
 import bcrypt from 'bcryptjs';
 
@@ -11,7 +11,7 @@ const usuarioSchema = new mongoose.Schema({
     email: {
         type: String,
         required: [true, 'O e-mail é obrigatório.'],
-        unique: true, // Garante que não hajam dois e-mails iguais
+        unique: true,
         lowercase: true,
         trim: true,
         match: [/\S+@\S+\.\S+/, 'Formato de e-mail inválido.']
@@ -20,19 +20,21 @@ const usuarioSchema = new mongoose.Schema({
         type: String,
         required: [true, 'A senha é obrigatória.'],
         minlength: [6, 'A senha deve ter no mínimo 6 caracteres.']
+    },
+    // <-- NOVO CAMPO -->
+    fotoPerfil: {
+        type: String,
+        default: 'images/default-avatar.png' // Um avatar padrão que você pode criar na sua pasta /public/images
     }
 }, {
     timestamps: true
 });
 
-// Hook (Middleware) do Mongoose: Executa ANTES de salvar o usuário
-// Isso garante que a senha seja criptografada automaticamente
+// Hook para criptografar a senha ANTES de salvar
 usuarioSchema.pre('save', async function(next) {
-    // Só criptografa a senha se ela foi modificada (ou é nova)
     if (!this.isModified('senha')) {
         return next();
     }
-    // Gera o "salt" e criptografa a senha
     const salt = await bcrypt.genSalt(10);
     this.senha = await bcrypt.hash(this.senha, salt);
     next();
