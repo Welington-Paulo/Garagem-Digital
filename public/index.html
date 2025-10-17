@@ -15,7 +15,6 @@
     <!--      SEÇÃO DE AUTENTICAÇÃO (VISÍVEL POR PADRÃO)                   -->
     <!-- =================================================================== -->
     <section id="auth-container">
-        <!-- TELA DE LOGIN -->
         <div id="login-view">
             <h2><i data-feather="log-in"></i> Entrar na Garagem</h2>
             <form id="form-login">
@@ -31,8 +30,6 @@
             </form>
             <p>Não tem uma conta? <a href="#" id="link-para-registrar">Registre-se aqui</a></p>
         </div>
-
-        <!-- TELA DE REGISTRO (ESCONDIDA POR PADRÃO) -->
         <div id="registrar-view" class="hidden">
             <h2><i data-feather="user-plus"></i> Criar Conta</h2>
             <form id="form-registrar">
@@ -59,12 +56,8 @@
     <!-- =================================================================== -->
     <div id="app-container" class="hidden">
         <header>
-            <button id="menu-hamburger-btn" class="menu-hamburger" aria-label="Abrir menu" aria-expanded="false">
-                <i data-feather="menu"></i>
-            </button>
+            <button id="menu-hamburger-btn" class="menu-hamburger" aria-label="Abrir menu" aria-expanded="false"><i data-feather="menu"></i></button>
             <h1>INTEL-Car</h1>
-            
-            <!-- NOVO MENU DROPDOWN DE PERFIL -->
             <div id="perfil-dropdown" class="perfil-dropdown">
                 <button id="perfil-btn" class="perfil-btn">
                     <img id="perfil-avatar-img" src="images/default-avatar.png" alt="Avatar do usuário" class="perfil-avatar">
@@ -79,59 +72,45 @@
         </header>
 
         <nav id="main-nav" class="main-navigation" data-visible="false">
-            <button id="menu-close-btn" class="menu-close" aria-label="Fechar menu">
-                <i data-feather="x"></i>
-            </button>
-            <button class="nav-button active" data-target="tab-adicionar">
-                <i data-feather="plus-circle"></i> Adicionar Veículo
-            </button>
-            <button class="nav-button" data-target="tab-garagem">
-                <i data-feather="grid"></i> Minha Garagem
-            </button>
-            <button class="nav-button" data-target="tab-interagir">
-                <i data-feather="sliders"></i> Interagir Veículo
-            </button>
-            <button class="nav-button" data-target="tab-consultas">
-                <i data-feather="activity"></i> Consultas
-            </button>
-            <button class="nav-button" data-target="tab-recursos">
-                <i data-feather="briefcase"></i> Recursos Garagem
-            </button>
-            <button class="nav-button" data-target="tab-planejar-viagem">
-                <i data-feather="map-pin"></i> Planejar Viagem
-            </button>
-            <!-- NOVO BOTÃO DE NAVEGAÇÃO PARA O PERFIL -->
-            <button class="nav-button" data-target="tab-perfil">
-                <i data-feather="settings"></i> Meu Perfil
-            </button>
+            <button id="menu-close-btn" class="menu-close" aria-label="Fechar menu"><i data-feather="x"></i></button>
+            <button class="nav-button active" data-target="tab-garagem"><i data-feather="grid"></i> Minha Garagem</button>
+            <button class="nav-button" data-target="tab-garagens-amigos"><i data-feather="users"></i> Garagens de Amigos</button>
+            <button class="nav-button" data-target="tab-interagir"><i data-feather="sliders"></i> Interagir Veículo</button>
+            <button class="nav-button" data-target="tab-recursos"><i data-feather="briefcase"></i> Recursos Garagem</button>
+            <button class="nav-button" data-target="tab-planejar-viagem"><i data-feather="map-pin"></i> Planejar Viagem</button>
+            <button class="nav-button" data-target="tab-perfil"><i data-feather="settings"></i> Meu Perfil e Amigos</button>
         </nav>
 
         <main>
-            <!-- ABA ADICIONAR VEÍCULO -->
-            <section id="tab-adicionar" class="tab-content active">
-                <h2><i data-feather="plus-square"></i>Adicionar Novo Veículo</h2>
-                <form id="form-add-veiculo">
-                    <div><label for="tipo-veiculo">Tipo:</label><select id="tipo-veiculo" name="tipo-veiculo" required><option value="">Selecione...</option><option value="Carro">Carro</option><option value="CarroEsportivo">Carro Esportivo</option><option value="Caminhao">Caminhão</option><option value="Veiculo">Genérico</option></select></div>
-                    <div><label for="marca">Marca:</label><input type="text" id="marca" name="marca" required></div>
-                    <div><label for="modelo">Modelo:</label><input type="text" id="modelo" name="modelo" required></div>
-                    <div><label for="ano">Ano:</label><input type="number" id="ano" name="ano" required min="1886" max="2099"></div>
-                    <div><label for="placa">Placa (AAA1234 ou ABC1D23):</label><input type="text" id="placa" name="placa" required pattern="[A-Za-z]{3}[0-9][A-Za-z0-9][0-9]{2}|[A-Za-z]{3}[0-9]{4}" title="AAA1234 ou ABC1D23 (sem hífen)"></div>
-                    <div><label for="cor">Cor:</label><input type="text" id="cor" name="cor" value="Branco"></div>
-                    <div id="campos-carro" class="campos-especificos" style="display: none;"><label for="numero-portas">Nº Portas:</label><input type="number" id="numero-portas" name="numero-portas" min="2" value="4"></div>
-                    <div id="campos-carroesportivo" class="campos-especificos" style="display: none;"><label for="velocidade-maxima-turbo">Vel. Máx. Turbo (km/h):</label><input type="number" id="velocidade-maxima-turbo" name="velocidade-maxima-turbo" min="100" value="250"></div>
-                    <div id="campos-caminhao" class="campos-especificos" style="display: none;"><label for="capacidade-carga">Carga (kg):</label><input type="number" id="capacidade-carga" name="capacidade-carga" min="100" value="1000"></div>
-                    <button type="submit"><i data-feather="save"></i> Salvar Veículo</button>
-                </form>
+            <section id="tab-garagem" class="tab-content active">
+                <h2><i data-feather="archive"></i> Minha Garagem</h2>
+                <div id="garagem-display-cards" class="cards-container">
+                    <p class="placeholder">Carregando sua garagem...</p>
+                </div>
             </section>
 
-            <section id="tab-garagem" class="tab-content"><h2><i data-feather="archive"></i>Veículos na Garagem</h2><div id="garagem-display-cards"><p class="placeholder">Carregando sua garagem...</p></div></section>
+            <section id="tab-garagens-amigos" class="tab-content">
+                <h2><i data-feather="users"></i> Garagens de Amigos</h2>
+                <div id="garagens-amigos-container">
+                    <p class="placeholder">As garagens dos seus amigos aparecerão aqui.</p>
+                </div>
+            </section>
             
             <section id="tab-interagir" class="tab-content">
                 <h2><i data-feather="cpu"></i>Painel: <span id="nome-veiculo-interacao">Nenhum</span></h2>
                 <div id="informacoesVeiculoSelecionado"><p>Selecione um veículo.</p></div>
-                <div id="botoesAcoesComuns" style="display:none; margin-top: 1rem;"><button data-acao="ligar"><i data-feather="power"></i>Ligar</button><button data-acao="desligar"><i data-feather="power" style="color: var(--error)"></i>Desligar</button><button data-acao="acelerar"><i data-feather="arrow-up-circle"></i>Acelerar</button><button data-acao="frear"><i data-feather="arrow-down-circle"></i>Frear</button><button data-acao="buzinar"><i data-feather="volume-2"></i>Buzinar</button></div>
-                <div id="botoesAcoesEspecificas" style="display:none; margin-top: 1rem;"><button data-acao="ativarTurbo" class="acao-especifica carroesportivo-action" style="display: none;"><i data-feather="zap"></i>Turbo</button><div class="acao-especifica caminhao-action acao-com-input" style="display: none;"><input type="number" id="input-carga" placeholder="Kg carregar" min="0"><button data-acao="carregar"><i data-feather="arrow-up"></i>Carregar</button></div><div class="acao-especifica caminhao-action acao-com-input" style="display: none;"><input type="number" id="input-descarga" placeholder="Kg descarregar" min="0"><button data-acao="descarregar"><i data-feather="arrow-down"></i>Descarregar</button></div></div>
-                
+                <div id="botoesAcoesComuns" style="display:none; margin-top: 1rem;">
+                    <button data-acao="ligar"><i data-feather="power"></i>Ligar</button>
+                    <button data-acao="desligar"><i data-feather="power"></i>Desligar</button>
+                    <button data-acao="acelerar"><i data-feather="arrow-up-circle"></i>Acelerar</button>
+                    <button data-acao="frear"><i data-feather="arrow-down-circle"></i>Frear</button>
+                    <button data-acao="buzinar"><i data-feather="volume-2"></i>Buzinar</button>
+                </div>
+                <div id="botoesAcoesEspecificas" style="display:none; margin-top: 1rem;">
+                    <button data-acao="ativarTurbo" class="acao-especifica carroesportivo-action" style="display: none;"><i data-feather="zap"></i>Turbo</button>
+                    <div class="acao-especifica caminhao-action acao-com-input" style="display: none;"><input type="number" id="input-carga" placeholder="Kg carregar" min="0"><button data-acao="carregar"><i data-feather="arrow-up"></i>Carregar</button></div>
+                    <div class="acao-especifica caminhao-action acao-com-input" style="display: none;"><input type="number" id="input-descarga" placeholder="Kg descarregar" min="0"><button data-acao="descarregar"><i data-feather="arrow-down"></i>Descarregar</button></div>
+                </div>
                 <div id="secao-manutencao-veiculo" style="display:none; margin-top: 2rem;">
                     <hr class="info-divider">
                     <h4><i data-feather="tool"></i> Histórico de Manutenção</h4>
@@ -150,144 +129,94 @@
                         </form>
                     </div>
                 </div>
-
                 <div class="log-interacoes-container" style="margin-top:1.5rem;"><h4><i data-feather="list"></i>Log:</h4><ul id="logInteracoesVeiculo"><li>Nenhuma interação.</li></ul></div>
             </section>
 
-            <section id="tab-consultas" class="tab-content"><h2><i data-feather="file-text"></i>Consultas</h2><div class="consulta-item"><h3><i data-feather="calendar"></i>Agendamentos</h3><div id="agendamentos-futuros-view"><p>Nenhum.</p></div></div><div class="consulta-item"><h3><i data-feather="bell"></i>Lembretes</h3><div id="lembretes-manutencao-view"><p>Nenhum.</p></div></div><div class="consulta-item"><h3><i data-feather="clipboard"></i>Históricos</h3><div id="historicos-consolidados-view"><p>Nenhum.</p></div></div></section>
-            
             <section id="tab-recursos" class="tab-content">
                 <h2><i data-feather="gift"></i>Recursos e Destaques da Garagem</h2>
                 <div class="recurso-section">
                     <h3><i data-feather="globe"></i> Vitrine Pública da Comunidade</h3>
-                    <div id="cards-veiculos-publicos" class="cards-container">
-                        <p class="placeholder">Carregando veículos públicos...</p>
-                    </div>
+                    <div id="cards-veiculos-publicos" class="cards-container"><p class="placeholder">Carregando veículos públicos...</p></div>
                 </div>
                 <div class="recurso-section">
                     <h3><i data-feather="star"></i>Veículos em Destaque (Exemplo)</h3>
                     <div id="cards-veiculos-destaque" class="cards-container"><p class="placeholder">Carregando...</p></div>
                 </div>
-                <div class="recurso-section">
-                    <h3><i data-feather="tool"></i>Serviços Oferecidos (Exemplo)</h3>
-                    <ul id="lista-servicos-oferecidos" class="lista-bonita"><li class="placeholder">Carregando...</li></ul>
-                </div>
-                <div class="recurso-section">
-                    <h3><i data-feather="shield"></i>Dicas de Manutenção (Exemplo)</h3>
-                    <div id="dicas-manutencao-view"><p class="placeholder"><i data-feather="info"></i>Dicas aparecerão aqui.</p></div>
-                </div>
             </section>
 
-<section id="tab-planejar-viagem" class="tab-content">
-    <h2><i data-feather="navigation-2"></i>Planejador de Viagem</h2>
-    <div class="form-viagem">
-        <div>
-            <label for="viagem-veiculo">Veículo:</label>
-            <select id="viagem-veiculo"><option value="">-- Selecione --</option></select>
-        </div>
-        <div>
-            <label for="cityInputViagem">Destino:</label>
-            <input type="text" id="cityInputViagem" placeholder="Ex: São Paulo">
-        </div>
-        <button id="searchButtonViagem" class="button-style"><i data-feather="search"></i> Buscar Clima</button>
-    </div>
+            <section id="tab-planejar-viagem" class="tab-content">
+                <h2><i data-feather="navigation-2"></i>Planejador de Viagem</h2>
+                <div class="form-viagem">
+                    <div><label for="viagem-veiculo">Veículo:</label><select id="viagem-veiculo"><option value="">-- Selecione --</option></select></div>
+                    <div><label for="cityInputViagem">Destino:</label><input type="text" id="cityInputViagem" placeholder="Ex: São Paulo"></div>
+                    <button id="searchButtonViagem" class="button-style"><i data-feather="search"></i> Buscar Clima</button>
+                </div>
+                <div id="errorMessageViagem" class="notificacao erro" style="display:none; margin-bottom:1rem;"></div>
+                <div id="controles-previsao" style="display:none;">
+                    <h4><i data-feather="settings"></i> Opções de Visualização</h4>
+                    <div class="filtros-previsao">
+                        <label>Mostrar Previsão para:</label>
+                        <button class="btn-filtro-dias button-style-outline" data-dias="1">Hoje</button>
+                        <button class="btn-filtro-dias button-style-outline" data-dias="3">3 Dias</button>
+                        <button class="btn-filtro-dias button-style-outline active" data-dias="5">5 Dias</button>
+                        <button class="btn-filtro-dias button-style-outline" data-dias="7">7 Dias</button>
+                    </div>
+                    <div class="destaques-previsao">
+                        <label>Destacar:</label>
+                        <label class="checkbox-container"><input type="checkbox" id="destaque-frio"><span class="checkmark"></span> Frio (&lt; 20°C) <i data-feather="thermometer" class="feather-inline" style="color:var(--info);"></i></label>
+                        <label class="checkbox-container"><input type="checkbox" id="destaque-quente"><span class="checkmark"></span> Quente (&gt; 30°C) <i data-feather="thermometer" class="feather-inline" style="color:var(--error);"></i></label>
+                    </div>
+                </div>
+                <div id="weatherResultViagem" style="margin-top:1rem;"><p class="placeholder">Digite uma cidade para ver a previsão do tempo.</p></div>
+            </section>
 
-    <div id="errorMessageViagem" class="notificacao erro" style="display:none; margin-bottom:1rem;"></div>
-
-    <!-- NOVOS CONTROLES DE FILTRO E DESTAQUE -->
-    <div id="controles-previsao" style="display:none;">
-        <h4><i data-feather="settings"></i> Opções de Visualização</h4>
-        <div class="filtros-previsao">
-            <label>Mostrar Previsão para:</label>
-            <button class="btn-filtro-dias button-style-outline" data-dias="1">Hoje</button>
-            <button class="btn-filtro-dias button-style-outline" data-dias="3">3 Dias</button>
-            <button class="btn-filtro-dias button-style-outline active" data-dias="5">5 Dias</button>
-            <button class="btn-filtro-dias button-style-outline" data-dias="7">7 Dias</button>
-        </div>
-        <div class="destaques-previsao">
-            <label>Destacar:</label>
-            <label class="checkbox-container">
-                <input type="checkbox" id="destaque-frio">
-                <span class="checkmark"></span> Frio (&lt; 20°C) <i data-feather="thermometer" class="feather-inline" style="color:var(--info);"></i>
-            </label>
-            <label class="checkbox-container">
-                <input type="checkbox" id="destaque-quente">
-                <span class="checkmark"></span> Quente (&gt; 30°C) <i data-feather="thermometer" class="feather-inline" style="color:var(--error);"></i>
-            </label>
-        </div>
-    </div>
-
-    <div id="weatherResultViagem" style="margin-top:1rem;">
-        <p class="placeholder">Digite uma cidade para ver a previsão do tempo.</p>
-    </div>
-</section>
-
-            <!-- NOVA ABA: MEU PERFIL -->
             <section id="tab-perfil" class="tab-content">
-                <h2><i data-feather="user"></i> Gerenciamento de Perfil</h2>
+                <h2><i data-feather="user"></i> Gerenciamento de Perfil e Amigos</h2>
                 <div class="perfil-layout">
-                    <!-- Coluna da Esquerda: Formulários de Edição -->
                     <div class="perfil-coluna-forms">
-                        <!-- Card de Informações Gerais -->
                         <div class="perfil-card">
-                            <h4>Informações da Conta</h4>
-                            <form id="form-editar-perfil">
-                                <div class="perfil-foto-container">
-                                    <img id="editar-perfil-img" src="images/default-avatar.png" alt="Avatar do usuário">
-                                </div>
-                                <div>
-                                    <label for="editar-nome">Nome de Usuário:</label>
-                                    <input type="text" id="editar-nome" required>
-                                </div>
-                                <div>
-                                    <label for="editar-email">Email:</label>
-                                    <input type="email" id="editar-email" required>
-                                </div>
-                                <div>
-                                    <label for="editar-foto-url">URL da Foto de Perfil:</label>
-                                    <input type="text" id="editar-foto-url" placeholder="https://exemplo.com/sua-imagem.png">
-                                </div>
-                                <button type="submit"><i data-feather="save"></i> Salvar Informações</button>
+                            <h4><i data-feather="user-plus"></i> Adicionar Amigo</h4>
+                            <form id="form-add-amigo">
+                                <div><label for="add-amigo-email">Email do Usuário:</label><input type="email" id="add-amigo-email" required placeholder="amigo@email.com"></div>
+                                <button type="submit"><i data-feather="send"></i> Enviar Pedido</button>
                             </form>
                         </div>
-                        
-                        <!-- Card de Alteração de Senha -->
                         <div class="perfil-card">
-                            <h4>Alterar Senha</h4>
-                            <form id="form-alterar-senha">
-                                <div>
-                                    <label for="senha-antiga">Senha Atual:</label>
-                                    <input type="password" id="senha-antiga" required autocomplete="current-password">
-                                </div>
-                                <div>
-                                    <label for="nova-senha">Nova Senha:</label>
-                                    <input type="password" id="nova-senha" required minlength="6" autocomplete="new-password">
-                                </div>
-                                <button type="submit"><i data-feather="lock"></i> Alterar Senha</button>
-                            </form>
+                            <h4><i data-feather="mail"></i> Pedidos Recebidos</h4>
+                            <div id="pedidos-amizade-lista"><p class="placeholder">Nenhum pedido de amizade pendente.</p></div>
                         </div>
-                        
-                        <!-- Card de Zona de Perigo -->
-                        <div class="perfil-card danger-zone">
-                            <h4>Zona de Perigo</h4>
-                            <p>Esta ação é irreversível. Todos os seus veículos e dados serão permanentemente deletados.</p>
-                            <button id="btn-deletar-conta" class="danger-button"><i data-feather="trash-2"></i> Deletar Minha Conta</button>
+                        <div class="perfil-card">
+                            <h4><i data-feather="users"></i> Meus Amigos</h4>
+                            <div id="lista-amigos"><p class="placeholder">Você ainda não tem amigos.</p></div>
                         </div>
                     </div>
-
-                    <!-- Coluna da Direita: Painel de Veículos -->
                     <div class="perfil-coluna-veiculos">
                         <div class="perfil-card">
-                            <h4><i data-feather="grid"></i> Meus Veículos Cadastrados</h4>
-                            <div id="perfil-lista-veiculos" class="perfil-lista-veiculos">
-                                <p class="placeholder">Carregando seus veículos...</p>
-                            </div>
+                            <h4><i data-feather="edit"></i> Editar Informações</h4>
+                            <form id="form-editar-perfil">
+                                <div class="perfil-foto-container"><img id="editar-perfil-img" src="images/default-avatar.png" alt="Avatar do usuário"></div>
+                                <div><label for="editar-nome">Nome de Usuário:</label><input type="text" id="editar-nome" required></div>
+                                <div><label for="editar-email">Email:</label><input type="email" id="editar-email" required></div>
+                                <div><label for="editar-foto-url">URL da Foto de Perfil:</label><input type="text" id="editar-foto-url" placeholder="https://exemplo.com/sua-imagem.png"></div>
+                                <button type="submit"><i data-feather="save"></i> Salvar Informações</button>
+                            </form>
+                            <hr class="info-divider">
+                            <h4 style="border:none; padding:0; margin-top: 1.5rem;"><i data-feather="lock"></i> Alterar Senha</h4>
+                            <form id="form-alterar-senha">
+                                <div><label for="senha-antiga">Senha Atual:</label><input type="password" id="senha-antiga" required autocomplete="current-password"></div>
+                                <div><label for="nova-senha">Nova Senha:</label><input type="password" id="nova-senha" required minlength="6" autocomplete="new-password"></div>
+                                <button type="submit"><i data-feather="key"></i> Alterar Senha</button>
+                            </form>
+                        </div>
+                        <div class="perfil-card danger-zone">
+                            <h4><i data-feather="alert-triangle"></i> Zona de Perigo</h4>
+                            <p>Esta ação é irreversível e deletará sua conta permanentemente.</p>
+                            <button id="btn-deletar-conta" class="danger-button"><i data-feather="trash-2"></i> Deletar Conta</button>
                         </div>
                     </div>
                 </div>
             </section>
             
-            <!-- MODAL DE EDIÇÃO DE VEÍCULO -->
             <div id="modal-editar-veiculo" class="modal">
                 <div class="modal-content">
                     <button class="close-button" onclick="window.fecharModalEdicao()" aria-label="Fechar"><i data-feather="x"></i></button>
@@ -302,6 +231,34 @@
                         <div id="campos-editar-carroesportivo" class="campos-especificos-editar" style="display: none;"><label for="editar-velocidade-maxima-turbo">Vel. Máx. Turbo (km/h):</label><input type="number" id="editar-velocidade-maxima-turbo" name="velocidade-maxima-turbo" min="100"></div>
                         <div id="campos-editar-caminhao" class="campos-especificos-editar" style="display: none;"><label for="editar-capacidade-carga">Carga (kg):</label><input type="number" id="editar-capacidade-carga" name="capacidade-carga" min="100"></div>
                         <button type="submit"><i data-feather="save"></i> Salvar Alterações</button>
+                    </form>
+                </div>
+            </div>
+
+            <div id="modal-compartilhar-veiculo" class="modal">
+                <div class="modal-content">
+                    <button class="close-button" onclick="window.fecharModalCompartilhar()" aria-label="Fechar"><i data-feather="x"></i></button>
+                    <h3><i data-feather="share-2"></i> Compartilhar Veículo Específico</h3>
+                    <p>Compartilhe o acesso ao seu <strong id="modal-compartilhar-nome-veiculo"></strong> com outro usuário, definindo permissões específicas para este veículo.</p>
+                    <form id="form-compartilhar-veiculo">
+                        <input type="hidden" id="compartilhar-veiculo-id">
+                        <div><label for="compartilhar-email">Email do Usuário:</label><input type="email" id="compartilhar-email" required placeholder="exemplo@email.com"></div>
+                        <div>
+                            <label>Nível de Permissão:</label>
+                            <div class="radio-group">
+                                <label class="radio-container">
+                                    <input type="radio" name="permissao" value="visualizador" checked> Visualizador
+                                    <span class="radio-checkmark"></span>
+                                    <small>Pode apenas ver o veículo e seu histórico.</small>
+                                </label>
+                                <label class="radio-container">
+                                    <input type="radio" name="permissao" value="colaborador"> Colaborador
+                                    <span class="radio-checkmark"></span>
+                                    <small>Pode editar, excluir, gerenciar e compartilhar este veículo.</small>
+                                </label>
+                            </div>
+                        </div>
+                        <button type="submit"><i data-feather="send"></i> Conceder Acesso</button>
                     </form>
                 </div>
             </div>

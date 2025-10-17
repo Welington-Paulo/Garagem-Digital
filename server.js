@@ -1,8 +1,9 @@
-// server.js (Versão Absolutamente Completa com Gerenciamento de Perfil)
+// server.js
 
 // ===================================================================
 // PARTE 1: IMPORTAÇÕES E CONFIGURAÇÃO INICIAL
 // ===================================================================
+
 import express from 'express';
 import dotenv from 'dotenv';
 import axios from 'axios';
@@ -129,6 +130,7 @@ app.post('/api/auth/login', async (req, res) => {
         res.status(200).json({ 
             token, 
             usuario: {
+                id: usuario._id,
                 nome: usuario.nome,
                 email: usuario.email,
                 foto: usuario.fotoPerfil
@@ -161,11 +163,60 @@ app.post('/api/veiculos', protegerRota, async (req, res) => {
 
 app.get('/api/veiculos', protegerRota, async (req, res) => {
     try {
-        const todosOsVeiculos = await VeiculoModel.find({ usuarioId: req.usuarioId }).sort({ createdAt: -1 });
-        res.json(todosOsVeiculos);
+        const veiculosDoUsuario = await VeiculoModel.find({
+            $or: [
+                { usuarioId: req.usuarioId },
+                { 'sharedWith.usuario': req.usuarioId }
+            ]
+        }).sort({ createdAt: -1 });
+        
+        res.json(veiculosDoUsuario);
     } catch (error) {
         console.error("[BACKEND] Erro ao buscar veículos:", error);
-        res.status(500).json({ error: 'Erro interno do servidor ao buscar veículos.' });
+        res.status(500).json({ error: 'Erro ao buscar veículos.' });
+    }
+});
+
+app.post('/api/veiculos/:id/share', protegerRota, async (req, res) => {
+    const { id: veiculoId } = req.params;
+    const { email, permissao } = req.body;
+
+    try {
+        if (!email) {
+            return res.status(400).json({ error: 'O e-mail do destinatário é obrigatório.' });
+        }
+        
+        const veiculo = await VeiculoModel.findById(veiculoId);
+        if (!veiculo) {
+            return res.status(404).json({ error: 'Veículo não encontrado.' });
+        }
+        if (veiculo.usuarioId.toString() !== req.usuarioId) {
+            return res.status(403).json({ error: 'Acesso negado. Apenas o proprietário pode compartilhar.' });
+        }
+
+        const usuarioDestino = await UsuarioModel.findOne({ email });
+        if (!usuarioDestino) {
+            return res.status(404).json({ error: `Usuário com o e-mail "${email}" não encontrado.` });
+        }
+        
+        if (usuarioDestino._id.toString() === req.usuarioId) {
+            return res.status(400).json({ error: 'Você não pode compartilhar um veículo com você mesmo.' });
+        }
+
+        const sharedIndex = veiculo.sharedWith.findIndex(s => s.usuario.toString() === usuarioDestino._id.toString());
+
+        if (sharedIndex > -1) {
+            veiculo.sharedWith[sharedIndex].permissao = permissao || 'visualizador';
+        } else {
+            veiculo.sharedWith.push({ usuario: usuarioDestino._id, permissao: permissao || 'visualizador' });
+        }
+        
+        await veiculo.save();
+        res.status(200).json({ message: `Veículo compartilhado com ${usuarioDestino.nome} com permissão de ${permissao || 'visualizador'}.` });
+
+    } catch (error) {
+        console.error("[BACKEND] Erro ao compartilhar veículo:", error);
+        res.status(500).json({ error: 'Erro interno do servidor ao compartilhar o veículo.' });
     }
 });
 
@@ -182,32 +233,52 @@ app.get('/api/veiculos/publicos', async (req, res) => {
 app.put('/api/veiculos/:id', protegerRota, async (req, res) => {
     try {
         const { id } = req.params;
-        if (!mongoose.Types.ObjectId.isValid(id)) { return res.status(400).json({ error: 'ID de veículo inválido.' });}
         const veiculo = await VeiculoModel.findById(id);
-        if (!veiculo) { return res.status(404).json({ error: 'Veículo não encontrado.' }); }
-        if (veiculo.usuarioId.toString() !== req.usuarioId) { return res.status(403).json({ error: 'Acesso não autorizado a este veículo.' }); }
-        const veiculoAtualizado = await VeiculoModel.findByIdAndUpdate(id, req.body, { new: true, runValidators: true });
+        if (!veiculo) {
+            return res.status(404).json({ error: 'Veículo não encontrado.' });
+        }
+        
+        const donoDoVeiculo = await UsuarioModel.findById(veiculo.usuarioId);
+        if (!donoDoVeiculo) return res.status(404).json({ error: 'Dono do veículo não encontrado.' });
+
+        const isOwner = veiculo.usuarioId.toString() === req.usuarioId;
+        const isCollaborator = veiculo.sharedWith.some(s => s.usuario.toString() === req.usuarioId && s.permissao === 'colaborador');
+        const isFriend = donoDoVeiculo.amigos.some(a => a.usuario.toString() === req.usuarioId && a.status === 'accepted');
+
+        if (!isOwner && !isCollaborator && !isFriend) {
+            return res.status(403).json({ error: 'Você não tem permissão para editar este veículo.' });
+        }
+        
+        const veiculoAtualizado = await VeiculoModel.findByIdAndUpdate(id, req.body, { new: true });
         res.status(200).json(veiculoAtualizado);
     } catch (error) {
         if (error.name === 'ValidationError') { const messages = Object.values(error.errors).map(val => val.message); return res.status(400).json({ error: messages.join(' ') }); }
         console.error("[BACKEND] Erro ao atualizar veículo:", error);
-        res.status(500).json({ error: 'Erro interno do servidor ao atualizar veículo.' });
+        res.status(500).json({ error: 'Erro ao atualizar veículo.' });
     }
 });
 
 app.delete('/api/veiculos/:id', protegerRota, async (req, res) => {
     try {
         const { id } = req.params;
-        if (!mongoose.Types.ObjectId.isValid(id)) { return res.status(400).json({ error: 'ID de veículo inválido.' });}
         const veiculo = await VeiculoModel.findById(id);
-        if (!veiculo) { return res.status(404).json({ error: 'Veículo não encontrado.' }); }
-        if (veiculo.usuarioId.toString() !== req.usuarioId) { return res.status(403).json({ error: 'Acesso não autorizado a este veículo.' }); }
-        const veiculoRemovido = await VeiculoModel.findByIdAndDelete(id);
+        if (!veiculo) {
+            return res.status(404).json({ error: 'Veículo não encontrado.' });
+        }
+
+        const isOwner = veiculo.usuarioId.toString() === req.usuarioId;
+        const isCollaborator = veiculo.sharedWith.some(s => s.usuario.toString() === req.usuarioId && s.permissao === 'colaborador');
+
+        if (!isOwner && !isCollaborator) {
+            return res.status(403).json({ error: 'Você não tem permissão para excluir este veículo.' });
+        }
+
+        await VeiculoModel.findByIdAndDelete(id);
         await ManutencaoModel.deleteMany({ veiculo: id });
-        res.status(200).json({ message: 'Veículo e seu histórico de manutenção foram removidos com sucesso.', veiculo: veiculoRemovido });
+        res.json({ message: 'Veículo removido com sucesso.' });
     } catch (error) {
         console.error("[BACKEND] Erro ao remover veículo:", error);
-        res.status(500).json({ error: 'Erro interno do servidor ao remover veículo.' });
+        res.status(500).json({ error: 'Erro ao remover veículo.' });
     }
 });
 
@@ -218,7 +289,18 @@ app.post('/api/veiculos/:veiculoId/manutencoes', protegerRota, async (req, res) 
         if (!mongoose.Types.ObjectId.isValid(veiculoId)) { return res.status(400).json({ error: 'O ID do veículo fornecido é inválido.' }); }
         const veiculo = await VeiculoModel.findById(veiculoId);
         if (!veiculo) { return res.status(404).json({ error: 'Veículo não encontrado para adicionar manutenção.' }); }
-        if (veiculo.usuarioId.toString() !== req.usuarioId) { return res.status(403).json({ error: 'Acesso não autorizado a este veículo.' }); }
+        
+        const donoDoVeiculo = await UsuarioModel.findById(veiculo.usuarioId);
+        if (!donoDoVeiculo) return res.status(404).json({ error: 'Dono do veículo não encontrado.' });
+
+        const isOwner = veiculo.usuarioId.toString() === req.usuarioId;
+        const isCollaborator = veiculo.sharedWith.some(s => s.usuario.toString() === req.usuarioId && s.permissao === 'colaborador');
+        const isFriend = donoDoVeiculo.amigos.some(a => a.usuario.toString() === req.usuarioId && a.status === 'accepted');
+
+        if (!isOwner && !isCollaborator && !isFriend) {
+             return res.status(403).json({ error: 'Acesso não autorizado a este veículo.' });
+        }
+        
         const novaManutencaoData = { ...req.body, veiculo: veiculoId };
         const manutencaoCriada = await ManutencaoModel.create(novaManutencaoData);
         res.status(201).json(manutencaoCriada);
@@ -233,8 +315,21 @@ app.get('/api/veiculos/:veiculoId/manutencoes', protegerRota, async (req, res) =
     const { veiculoId } = req.params;
     try {
         if (!mongoose.Types.ObjectId.isValid(veiculoId)) { return res.status(400).json({ error: 'ID de veículo inválido.' }); }
-        const veiculoExiste = await VeiculoModel.findOne({ _id: veiculoId, usuarioId: req.usuarioId });
-        if (!veiculoExiste) { return res.status(404).json({ error: 'Veículo não encontrado ou não pertence a você.' }); }
+        
+        const veiculo = await VeiculoModel.findById(veiculoId);
+        if (!veiculo) { return res.status(404).json({ error: 'Veículo não encontrado.' });}
+
+        const donoDoVeiculo = await UsuarioModel.findById(veiculo.usuarioId);
+        if (!donoDoVeiculo) return res.status(404).json({ error: 'Dono do veículo não encontrado.' });
+
+        const isOwner = veiculo.usuarioId.toString() === req.usuarioId;
+        const isSharedWithMe = veiculo.sharedWith.some(s => s.usuario.toString() === req.usuarioId);
+        const isFriend = donoDoVeiculo.amigos.some(a => a.usuario.toString() === req.usuarioId && a.status === 'accepted');
+
+        if (!isOwner && !isSharedWithMe && !isFriend) {
+            return res.status(404).json({ error: 'Veículo não encontrado ou você não tem permissão para vê-lo.' });
+        }
+
         const manutencoes = await ManutencaoModel.find({ veiculo: veiculoId }).sort({ data: -1 });
         res.status(200).json(manutencoes);
     } catch (error) {
@@ -242,7 +337,6 @@ app.get('/api/veiculos/:veiculoId/manutencoes', protegerRota, async (req, res) =
         res.status(500).json({ error: 'Erro interno do servidor ao buscar manutenções.' });
     }
 });
-
 
 // --- Endpoints de Gerenciamento de Perfil ---
 app.get('/api/usuarios/perfil', protegerRota, async (req, res) => {
@@ -300,6 +394,77 @@ app.delete('/api/usuarios/conta', protegerRota, async (req, res) => {
     }
 });
 
+// --- Endpoints do Sistema de Amizade ---
+app.post('/api/amigos/pedir', protegerRota, async (req, res) => {
+    const { email } = req.body;
+    const solicitanteId = req.usuarioId;
+    try {
+        const destinatario = await UsuarioModel.findOne({ email });
+        if (!destinatario) return res.status(404).json({ error: 'Usuário não encontrado.' });
+        if (destinatario._id.toString() === solicitanteId) return res.status(400).json({ error: 'Você não pode adicionar a si mesmo.' });
+        const solicitante = await UsuarioModel.findById(solicitanteId);
+        if (solicitante.amigos.some(a => a.usuario.toString() === destinatario._id.toString())) {
+            return res.status(409).json({ error: 'Já existe um pedido pendente ou amizade com este usuário.' });
+        }
+        solicitante.amigos.push({ usuario: destinatario._id, status: 'pending_sent' });
+        destinatario.amigos.push({ usuario: solicitanteId, status: 'pending_received' });
+        await solicitante.save();
+        await destinatario.save();
+        res.status(200).json({ message: `Pedido de amizade enviado para ${destinatario.nome}.` });
+    } catch (error) {
+        res.status(500).json({ error: 'Erro ao enviar pedido de amizade.' });
+    }
+});
+
+app.get('/api/amigos', protegerRota, async (req, res) => {
+    try {
+        const usuario = await UsuarioModel.findById(req.usuarioId).populate('amigos.usuario', 'nome email fotoPerfil');
+        if (!usuario) return res.status(404).json({ error: "Usuário não encontrado." });
+        res.json(usuario.amigos);
+    } catch (error) {
+        res.status(500).json({ error: 'Erro ao listar amigos.' });
+    }
+});
+
+app.put('/api/amigos/responder/:idAmigo', protegerRota, async (req, res) => {
+    const { idAmigo } = req.params;
+    const { resposta } = req.body;
+    const meuId = req.usuarioId;
+    try {
+        const eu = await UsuarioModel.findById(meuId);
+        const amigo = await UsuarioModel.findById(idAmigo);
+        if (!amigo) return res.status(404).json({ error: 'Usuário do pedido não encontrado.' });
+        const meuPedido = eu.amigos.find(a => a.usuario.toString() === idAmigo && a.status === 'pending_received');
+        const pedidoDoAmigo = amigo.amigos.find(a => a.usuario.toString() === meuId && a.status === 'pending_sent');
+        if (!meuPedido || !pedidoDoAmigo) return res.status(404).json({ error: 'Pedido de amizade não encontrado.' });
+        if (resposta === 'accepted') {
+            meuPedido.status = 'accepted';
+            pedidoDoAmigo.status = 'accepted';
+            await eu.save();
+            await amigo.save();
+            res.json({ message: `Você e ${amigo.nome} agora são amigos.` });
+        } else {
+            eu.amigos = eu.amigos.filter(a => a.usuario.toString() !== idAmigo);
+            amigo.amigos = amigo.amigos.filter(a => a.usuario.toString() !== meuId);
+            await eu.save();
+            await amigo.save();
+            res.json({ message: `Pedido de ${amigo.nome} recusado.` });
+        }
+    } catch (error) {
+        res.status(500).json({ error: 'Erro ao responder ao pedido.' });
+    }
+});
+
+app.get('/api/garagens-compartilhadas', protegerRota, async (req, res) => {
+    try {
+        const eu = await UsuarioModel.findById(req.usuarioId);
+        const idsDosAmigos = eu.amigos.filter(a => a.status === 'accepted').map(a => a.usuario);
+        const garagens = await VeiculoModel.find({ usuarioId: { $in: idsDosAmigos } }).sort({ nomeDono: 1, createdAt: -1 });
+        res.json(garagens);
+    } catch (error) {
+        res.status(500).json({ error: 'Erro ao buscar garagens compartilhadas.' });
+    }
+});
 
 // --- Outras Rotas Públicas (Arsenal de Dados, OpenWeather) ---
 const veiculosDestaque = [ { id: "vd001", modelo: "Ford Maverick Híbrido", ano: 2024, destaque: "Performance sustentável.", imagemUrl: "images/maverick_hybrid.jpg" } ];

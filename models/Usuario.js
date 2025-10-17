@@ -1,6 +1,20 @@
-// models/Usuario.js (Versão Final com Foto de Perfil)
+// models/Usuario.js (Versão com Sistema de Amizade)
 import mongoose from 'mongoose';
 import bcrypt from 'bcryptjs';
+
+// Subdocumento para a lista de amigos
+const friendSchema = new mongoose.Schema({
+    usuario: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'Usuario',
+        required: true
+    },
+    status: {
+        type: String,
+        enum: ['pending_sent', 'pending_received', 'accepted'], // pending_sent: Eu enviei; pending_received: Eu recebi; accepted: Somos amigos
+        required: true
+    }
+}, { _id: false });
 
 const usuarioSchema = new mongoose.Schema({
     nome: {
@@ -21,11 +35,12 @@ const usuarioSchema = new mongoose.Schema({
         required: [true, 'A senha é obrigatória.'],
         minlength: [6, 'A senha deve ter no mínimo 6 caracteres.']
     },
-    // <-- NOVO CAMPO -->
     fotoPerfil: {
         type: String,
-        default: 'images/default-avatar.png' // Um avatar padrão que você pode criar na sua pasta /public/images
-    }
+        default: 'images/default-avatar.png'
+    },
+    // <-- NOVO CAMPO: Para gerenciar amizades e pedidos -->
+    amigos: [friendSchema]
 }, {
     timestamps: true
 });
