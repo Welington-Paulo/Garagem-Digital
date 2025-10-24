@@ -1,24 +1,22 @@
 // JS/script.js
 
-// Envolve todo o código em um listener para garantir que o DOM esteja totalmente carregado antes de executar o script.
 document.addEventListener('DOMContentLoaded', () => {
     
     // ===================================================================
-    // PARTE 1: CONFIGURAÇÃO INICIAL E LÓGICA DE AUTENTICAÇÃO
+    // PARTE 1: CONFIGURAÇÃO E CACHE DE ELEMENTOS DO DOM
     // ===================================================================
 
-    // --- Instância da Garagem (será usada na Parte 2) ---
     const garagem = new Garagem();
-
-    // --- Constantes Globais ---
     const backendBaseUrl = 'http://localhost:3001';
 
-    // --- Cache de Elementos do DOM ---
+    // Estado do Planejador de Viagem
+    let previsaoCompletaCache = null;
+    let cidadeCache = "";
+    let diasFiltro = 5;
+    let destacarFrio = false;
+    let destacarQuente = false;
 
-    // Elementos da Área de Notificação
-    const notificacaoArea = document.getElementById('notificacao-area');
-
-    // Elementos de Autenticação
+    // Autenticação
     const authContainer = document.getElementById('auth-container');
     const appContainer = document.getElementById('app-container');
     const loginView = document.getElementById('login-view');
@@ -27,36 +25,83 @@ document.addEventListener('DOMContentLoaded', () => {
     const formRegistrar = document.getElementById('form-registrar');
     const linkParaRegistrar = document.getElementById('link-para-registrar');
     const linkParaLogin = document.getElementById('link-para-login');
-    const btnLogout = document.getElementById('btn-logout');
 
-    // Elementos da Navegação Interna (Adicionado para a correção)
-    const navLinks = document.querySelectorAll('.nav-link');
-    const contentPanels = document.querySelectorAll('.content-panel');
+    // Header e Perfil Dropdown
+    const perfilDropdown = document.getElementById('perfil-dropdown');
+    const perfilBtn = document.getElementById('perfil-btn');
+    const perfilAvatarImg = document.getElementById('perfil-avatar-img');
+    const perfilNomeSpan = document.getElementById('perfil-nome-span');
+    const perfilDropdownContent = document.getElementById('perfil-dropdown-content');
+    const linkEditarPerfil = document.getElementById('link-editar-perfil');
+    const linkSair = document.getElementById('link-sair');
 
-    // Elementos do App Principal (Garagem)
-    const formAddVeiculo = document.getElementById('form-add-veiculo');
+    // Navegação e UI Geral
+    const notificacaoArea = document.getElementById('notificacao-area');
+    const navButtons = document.querySelectorAll('.nav-button');
+    const tabContents = document.querySelectorAll('.tab-content');
+    const menuHamburgerBtn = document.getElementById('menu-hamburger-btn');
+    const menuCloseBtn = document.getElementById('menu-close-btn');
+    const mainNav = document.getElementById('main-nav');
+
+    // Aba "Meu Perfil e Amigos"
+    const formEditarPerfil = document.getElementById('form-editar-perfil');
+    const formAlterarSenha = document.getElementById('form-alterar-senha');
+    const btnDeletarConta = document.getElementById('btn-deletar-conta');
+    const formAddAmigo = document.getElementById('form-add-amigo');
+    const pedidosAmizadeLista = document.getElementById('pedidos-amizade-lista');
+    const listaAmigosDiv = document.getElementById('lista-amigos');
+
+    // Garagens
     const garagemDisplayCards = document.getElementById('garagem-display-cards');
-    const tipoVeiculoSelect = document.getElementById('tipo-veiculo');
-    const camposEspecificosDivs = document.querySelectorAll('.campos-especificos');
-    const nomeVeiculoInteracaoSpan = document.getElementById('nome-veiculo-interacao');
-    const divInfoVeiculoSelecionado = document.getElementById('informacoesVeiculoSelecionado');
-    const ulLogInteracoes = document.getElementById('logInteracoesVeiculo');
-    const secaoManutencao = document.getElementById('secao-manutencao-veiculo');
-    const formAddManutencao = document.getElementById('form-add-manutencao');
+    const garagensAmigosContainer = document.getElementById('garagens-amigos-container');
+
+    // Modais
     const modalEditarVeiculo = document.getElementById('modal-editar-veiculo');
     const formEditarVeiculo = document.getElementById('form-editar-veiculo');
-    // ... (outros elementos do DOM podem ser adicionados aqui conforme necessário)
+    const editarVeiculoIdInput = document.getElementById('editar-veiculo-id');
+    const modalEditarTituloSpan = document.getElementById('modal-editar-veiculo-titulo');
+    const camposEspecificosEditarDivs = document.querySelectorAll('.campos-especificos-editar');
+    const modalCompartilharVeiculo = document.getElementById('modal-compartilhar-veiculo');
+    const formCompartilharVeiculo = document.getElementById('form-compartilhar-veiculo');
+    
+    // Aba Adicionar Veículo
+    const formAddVeiculo = document.getElementById('form-add-veiculo');
+    const tipoVeiculoSelect = document.getElementById('tipo-veiculo');
+    const camposEspecificosDivs = document.querySelectorAll('.campos-especificos');
 
-    // --- Funções Utilitárias ---
+    // Aba Interagir
+    const nomeVeiculoInteracaoSpan = document.getElementById('nome-veiculo-interacao');
+    const divInfoVeiculoSelecionado = document.getElementById('informacoesVeiculoSelecionado');
+    const divBotoesAcoesComuns = document.getElementById('botoesAcoesComuns');
+    const divBotoesAcoesEspecificas = document.getElementById('botoesAcoesEspecificas');
+    const ulLogInteracoes = document.getElementById('logInteracoesVeiculo');
+    const secaoManutencao = document.getElementById('secao-manutencao-veiculo');
+    const listaManutencoesDiv = document.getElementById('lista-manutencoes-veiculo');
+    const formAddManutencao = document.getElementById('form-add-manutencao');
+    const manutencaoVeiculoIdInput = document.getElementById('manutencao-veiculo-id');
+    
+    // Aba Recursos
+    const cardsVeiculosDestaqueDiv = document.getElementById('cards-veiculos-destaque');
+    const listaServicosOferecidosUl = document.getElementById('lista-servicos-oferecidos');
+    const cardsVeiculosPublicosDiv = document.getElementById('cards-veiculos-publicos');
 
-    /**
-     * Exibe uma notificação flutuante (toast) na tela.
-     * @param {string} mensagem O texto a ser exibido.
-     * @param {('info'|'sucesso'|'erro'|'aviso')} tipo O estilo da notificação.
-     * @param {number} duracao Duração em milissegundos.
-     */
+    // Aba Planejar Viagem
+    const selectViagemVeiculo = document.getElementById('viagem-veiculo');
+    const cityInputViagem = document.getElementById('cityInputViagem');
+    const searchButtonViagem = document.getElementById('searchButtonViagem');
+    const weatherResultDivViagem = document.getElementById('weatherResultViagem');
+    const errorMessageDivViagem = document.getElementById('errorMessageViagem');
+    const controlesPrevisao = document.getElementById('controles-previsao');
+    const btnsFiltroDias = document.querySelectorAll('.btn-filtro-dias');
+    const checkDestaqueFrio = document.getElementById('destaque-frio');
+    const checkDestaqueQuente = document.getElementById('destaque-quente');
+
+    // ===================================================================
+    // PARTE 2: FUNÇÕES UTILITÁRIAS
+    // ===================================================================
+
     function exibirNotificacao(mensagem, tipo = 'info', duracao = 4000) {
-        if (!notificacaoArea) { return; }
+        if (!notificacaoArea) return;
         const notificacao = document.createElement('div');
         notificacao.className = `notificacao ${tipo}`;
         const iconMap = { 'info': 'info', 'sucesso': 'check-circle', 'erro': 'x-octagon', 'aviso': 'alert-triangle' };
@@ -71,67 +116,52 @@ document.addEventListener('DOMContentLoaded', () => {
         }, duracao);
     }
 
-    /**
-     * Renderiza os ícones da biblioteca Feather Icons.
-     */
     function _renderFeatherIcons() {
-        if (typeof feather !== 'undefined') {
-            feather.replace({ width: '1em', height: '1em' });
-        }
+        if (typeof feather !== 'undefined') feather.replace({ width: '1em', height: '1em' });
     }
 
-    // --- Seção de Lógica de Autenticação ---
+    // ===================================================================
+    // PARTE 3: LÓGICA DE AUTENTICAÇÃO E SESSÃO
+    // ===================================================================
 
-    // Funções de manipulação do Token JWT no Local Storage
     const salvarToken = (token) => localStorage.setItem('authToken', token);
     const obterToken = () => localStorage.getItem('authToken');
-    const removerToken = () => localStorage.removeItem('authToken');
+    const removerToken = () => {
+        localStorage.removeItem('authToken');
+        localStorage.removeItem('usuario');
+    };
+    const salvarUsuario = (usuario) => localStorage.setItem('usuario', JSON.stringify(usuario));
+    const obterUsuario = () => JSON.parse(localStorage.getItem('usuario'));
 
-    // Funções de controle de visibilidade das telas principais
     const mostrarTelaAuth = () => {
         authContainer.classList.remove('hidden');
         appContainer.classList.add('hidden');
         loginView.classList.remove('hidden');
         registrarView.classList.add('hidden');
     };
+
     const mostrarApp = () => {
         authContainer.classList.add('hidden');
         appContainer.classList.remove('hidden');
-        inicializarDadosDoApp(); // Carrega os dados do usuário logado
+        atualizarHeaderUsuario();
+        inicializarDadosDoApp();
     };
+    
+    function atualizarHeaderUsuario() {
+        const usuario = obterUsuario();
+        if (usuario) {
+            perfilAvatarImg.src = usuario.foto || 'images/default-avatar.png';
+            perfilNomeSpan.textContent = usuario.nome;
+        }
+    }
 
-    // Event Listeners para a troca de telas (Login <-> Registro)
-    linkParaRegistrar.addEventListener('click', (e) => {
-        e.preventDefault();
-        loginView.classList.add('hidden');
-        registrarView.classList.remove('hidden');
-    });
-    linkParaLogin.addEventListener('click', (e) => {
-        e.preventDefault();
-        registrarView.classList.add('hidden');
-        loginView.classList.remove('hidden');
-    });
-
-    // Event Listener para o botão de Logout
-    btnLogout.addEventListener('click', () => {
-        removerToken();
-        garagem.veiculos = []; // Limpa os dados locais
-        garagem.veiculoSelecionado = null;
-        if(garagemDisplayCards) garagemDisplayCards.innerHTML = '<p>Você saiu da sua conta.</p>';
-        mostrarTelaAuth();
-        exibirNotificacao("Você saiu com sucesso.", "info");
-    });
-
-    // Event Listener para o formulário de LOGIN
     formLogin.addEventListener('submit', async (e) => {
         e.preventDefault();
         const submitButton = formLogin.querySelector('button[type="submit"]');
         submitButton.disabled = true;
         submitButton.textContent = 'Entrando...';
-
         const email = document.getElementById('login-email').value;
         const senha = document.getElementById('login-senha').value;
-
         try {
             const response = await fetch(`${backendBaseUrl}/api/auth/login`, {
                 method: 'POST',
@@ -140,9 +170,9 @@ document.addEventListener('DOMContentLoaded', () => {
             });
             const resultado = await response.json();
             if (!response.ok) throw new Error(resultado.error);
-            
             salvarToken(resultado.token);
-            exibirNotificacao(`Bem-vindo de volta, ${resultado.nomeUsuario}!`, 'sucesso');
+            salvarUsuario(resultado.usuario);
+            exibirNotificacao(`Bem-vindo de volta, ${resultado.usuario.nome}!`, 'sucesso');
             mostrarApp();
             formLogin.reset();
         } catch (error) {
@@ -153,17 +183,14 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
-    // Event Listener para o formulário de REGISTRO
     formRegistrar.addEventListener('submit', async (e) => {
         e.preventDefault();
         const submitButton = formRegistrar.querySelector('button[type="submit"]');
         submitButton.disabled = true;
         submitButton.textContent = 'Registrando...';
-        
         const nome = document.getElementById('registrar-nome').value;
         const email = document.getElementById('registrar-email').value;
         const senha = document.getElementById('registrar-senha').value;
-
         try {
             const response = await fetch(`${backendBaseUrl}/api/auth/registrar`, {
                 method: 'POST',
@@ -172,10 +199,9 @@ document.addEventListener('DOMContentLoaded', () => {
             });
             const resultado = await response.json();
             if (!response.ok) throw new Error(resultado.error);
-
             exibirNotificacao('Conta criada com sucesso! Por favor, faça o login.', 'sucesso');
             formRegistrar.reset();
-            linkParaLogin.click(); // Leva o usuário de volta para a tela de login
+            linkParaLogin.click();
         } catch (error) {
             exibirNotificacao(error.message, 'erro');
         } finally {
@@ -185,189 +211,493 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     // ===================================================================
-    // PARTE 1.5: LÓGICA DE NAVEGAÇÃO INTERNA (CORREÇÃO)
+    // PARTE 4: LÓGICA DA APLICAÇÃO (NAVEGAÇÃO, PERFIL, AMIGOS, GARAGEM)
     // ===================================================================
 
-    /**
-     * Controla a exibição dos painéis de conteúdo (abas) da aplicação.
-     * @param {string} targetId O ID do painel de conteúdo a ser exibido.
-     */
-    function mostrarPainel(targetId) {
-        // Esconde todos os painéis
-        contentPanels.forEach(panel => {
-            panel.classList.remove('active');
-        });
-        // Remove a classe 'active' de todos os links
-        navLinks.forEach(link => {
-            link.classList.remove('active');
-        });
-
-        // Encontra e exibe o painel alvo
-        const targetPanel = document.getElementById(targetId);
-        const targetLink = document.querySelector(`.nav-link[href="#${targetId}"]`);
-
-        if (targetPanel) {
-            targetPanel.classList.add('active');
-        }
-        if (targetLink) {
-            targetLink.classList.add('active');
-        }
+    // --- Navegação Principal e Menu Hambúrguer ---
+    if (menuHamburgerBtn && mainNav && menuCloseBtn) {
+        menuHamburgerBtn.addEventListener('click', () => mainNav.setAttribute('data-visible', 'true'));
+        menuCloseBtn.addEventListener('click', () => mainNav.setAttribute('data-visible', 'false'));
     }
 
-    // Adiciona o evento de clique para cada link da navegação
-    navLinks.forEach(link => {
-        link.addEventListener('click', (e) => {
-            e.preventDefault(); // Impede o comportamento padrão do link
-            const targetId = link.getAttribute('href').substring(1); // Pega o ID do href (ex: #minha-garagem -> minha-garagem)
-            mostrarPainel(targetId);
+    if (navButtons && tabContents) {
+        navButtons.forEach(button => {
+            button.addEventListener('click', () => {
+                const targetId = button.dataset.target;
+                const targetTab = document.getElementById(targetId);
+                if (targetTab) {
+                    navButtons.forEach(btn => btn.classList.remove('active'));
+                    button.classList.add('active');
+                    tabContents.forEach(content => content.classList.remove('active'));
+                    targetTab.classList.add('active');
+                    if (targetId === 'tab-perfil') {
+                        preencherFormulariosPerfil();
+                        carregarDadosAmizade();
+                    }
+                    if (targetId === 'tab-garagens-amigos') {
+                        carregarGaragensDeAmigos();
+                    }
+                    _renderFeatherIcons();
+                }
+                if (mainNav && mainNav.getAttribute('data-visible') === 'true') {
+                    mainNav.setAttribute('data-visible', 'false');
+                }
+            });
         });
+    }
+
+    // --- Menu Dropdown de Perfil ---
+    perfilBtn.addEventListener('click', () => {
+        perfilDropdownContent.classList.toggle('show');
     });
 
-    // --- Seção de Inicialização da Aplicação ---
-
-    /**
-     * Carrega os dados da aplicação (veículos, etc.) APÓS o login bem-sucedido.
-     */
-    function inicializarDadosDoApp() {
-        console.log("App inicializado. Carregando dados do usuário...");
-        // Define a aba "Minha Garagem" como a padrão ao carregar
-        mostrarPainel('minha-garagem'); 
-        carregarVeiculosDoBackend();
-        // Você pode adicionar aqui as chamadas para carregar outras informações.
-    }
-
-    /**
-     * Função principal que é executada quando a página carrega.
-     * Verifica se existe um token para decidir qual tela mostrar.
-     */
-    function checarLoginInicial() {
-        const token = obterToken();
-        if (token) {
-            mostrarApp();
-        } else {
-            mostrarTelaAuth();
+    window.addEventListener('click', (event) => {
+        if (!perfilDropdown.contains(event.target)) {
+            perfilDropdownContent.classList.remove('show');
         }
+    });
+
+    linkEditarPerfil.addEventListener('click', (e) => {
+        e.preventDefault();
+        document.querySelector('.nav-button[data-target="tab-perfil"]').click();
+        perfilDropdownContent.classList.remove('show');
+    });
+
+    linkSair.addEventListener('click', (e) => {
+        e.preventDefault();
+        removerToken();
+        mostrarTelaAuth();
+        exibirNotificacao("Você saiu com sucesso.", "info");
+    });
+    
+    // --- Lógica da Aba "Meu Perfil e Amigos" ---
+    
+    formAddAmigo.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const email = document.getElementById('add-amigo-email').value;
+        const token = obterToken();
+        try {
+            const response = await fetch(`${backendBaseUrl}/api/amigos/pedir`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+                body: JSON.stringify({ email })
+            });
+            const resultado = await response.json();
+            if (!response.ok) throw new Error(resultado.error);
+            exibirNotificacao(resultado.message, 'sucesso');
+            formAddAmigo.reset();
+            carregarDadosAmizade();
+        } catch (error) {
+            exibirNotificacao(`Erro: ${error.message}`, 'erro');
+        }
+    });
+
+    async function carregarDadosAmizade() {
+        const token = obterToken();
+        try {
+            const response = await fetch(`${backendBaseUrl}/api/amigos`, { headers: { 'Authorization': `Bearer ${token}` } });
+            const amigosEpedidos = await response.json();
+            
+            const pedidos = amigosEpedidos.filter(a => a.status === 'pending_received');
+            const amigos = amigosEpedidos.filter(a => a.status === 'accepted');
+
+            renderizarPedidos(pedidos);
+            renderizarAmigos(amigos);
+        } catch (error) {
+            console.error('Erro ao carregar dados de amizade', error);
+        }
+    }
+
+    function renderizarPedidos(pedidos) {
+        pedidosAmizadeLista.innerHTML = '';
+        if (pedidos.length === 0) {
+            pedidosAmizadeLista.innerHTML = '<p class="placeholder">Nenhum pedido pendente.</p>';
+            return;
+        }
+        pedidos.forEach(p => {
+            const item = document.createElement('div');
+            item.className = 'pedido-item';
+            item.innerHTML = `
+                <img src="${p.usuario.fotoPerfil || 'images/default-avatar.png'}" alt="Avatar" class="amigo-avatar">
+                <div class="amigo-info">
+                    <strong>${p.usuario.nome}</strong>
+                    <span>${p.usuario.email}</span>
+                </div>
+                <div class="pedido-acoes">
+                    <button class="btn-aceitar" onclick="window.responderPedido('${p.usuario._id}', 'accepted')"><i data-feather="check"></i> Aceitar</button>
+                    <button class="btn-recusar" onclick="window.responderPedido('${p.usuario._id}', 'declined')"><i data-feather="x"></i> Recusar</button>
+                </div>
+            `;
+            pedidosAmizadeLista.appendChild(item);
+        });
         _renderFeatherIcons();
     }
 
-    // Ponto de entrada do script
-    checarLoginInicial();
+    function renderizarAmigos(amigos) {
+        listaAmigosDiv.innerHTML = '';
+        if (amigos.length === 0) {
+            listaAmigosDiv.innerHTML = '<p class="placeholder">Adicione amigos para ver suas garagens.</p>';
+            return;
+        }
+        amigos.forEach(a => {
+            const item = document.createElement('div');
+            item.className = 'amigo-item';
+            item.innerHTML = `
+                <img src="${a.usuario.fotoPerfil || 'images/default-avatar.png'}" alt="Avatar" class="amigo-avatar">
+                <div class="amigo-info">
+                    <strong>${a.usuario.nome}</strong>
+                    <span>${a.usuario.email}</span>
+                </div>
+            `;
+            listaAmigosDiv.appendChild(item);
+        });
+    }
 
-    // ===================================================================
-    // PARTE 2: LÓGICA DA APLICAÇÃO (GARAGEM, VIAGEM, ETC.)
-    // O CÓDIGO RESTANTE IRÁ ABAIXO DESTA LINHA
-    // ===================================================================
-
-    // --- Seção de Lógica do App Principal (Garagem) ---
-    
-    // As funções desta seção SÓ SÃO CHAMADAS quando o usuário está logado.
-
-    /**
-     * Busca os veículos do usuário logado no backend e atualiza a UI.
-     */
-    async function carregarVeiculosDoBackend() {
+    window.responderPedido = async (idAmigo, resposta) => {
         const token = obterToken();
-        if (!token) return; // Segurança extra
-
-        if (garagemDisplayCards) garagemDisplayCards.innerHTML = `<p><i data-feather="loader" class="spin"></i> Carregando sua garagem...</p>`;
-        _renderFeatherIcons();
-
         try {
-            const response = await fetch(`${backendBaseUrl}/api/veiculos`, {
-                headers: { 'Authorization': `Bearer ${token}` }
+            const response = await fetch(`${backendBaseUrl}/api/amigos/responder/${idAmigo}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+                body: JSON.stringify({ resposta })
             });
+            const resultado = await response.json();
+            if (!response.ok) throw new Error(resultado.error);
+            exibirNotificacao(resultado.message, 'sucesso');
+            carregarDadosAmizade();
+        } catch (error) {
+            exibirNotificacao(`Erro: ${error.message}`, 'erro');
+        }
+    };
+    
+    async function preencherFormulariosPerfil() {
+        const usuario = obterUsuario();
+        if (usuario) {
+            document.getElementById('editar-nome').value = usuario.nome;
+            document.getElementById('editar-email').value = usuario.email;
+            const fotoUrl = usuario.foto === 'images/default-avatar.png' ? '' : usuario.foto;
+            document.getElementById('editar-foto-url').value = fotoUrl || '';
+            editarPerfilImg.src = usuario.foto || 'images/default-avatar.png';
+        }
+    }
 
-            if (response.status === 401 || response.status === 403) {
-                 removerToken();
-                 mostrarTelaAuth();
-                 exibirNotificacao('Sua sessão expirou. Faça login novamente.', 'aviso');
-                 return;
+    formEditarPerfil.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const token = obterToken();
+        const dadosAtualizados = {
+            nome: document.getElementById('editar-nome').value,
+            email: document.getElementById('editar-email').value,
+            fotoPerfil: document.getElementById('editar-foto-url').value,
+        };
+        try {
+            const response = await fetch(`${backendBaseUrl}/api/usuarios/perfil`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+                body: JSON.stringify(dadosAtualizados)
+            });
+            const resultado = await response.json();
+            if (!response.ok) throw new Error(resultado.error);
+            salvarUsuario(resultado.usuario);
+            atualizarHeaderUsuario();
+            preencherFormulariosPerfil();
+            exibirNotificacao('Perfil atualizado com sucesso!', 'sucesso');
+        } catch (error) {
+            exibirNotificacao(`Erro: ${error.message}`, 'erro');
+        }
+    });
+
+    formAlterarSenha.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const token = obterToken();
+        const dadosSenha = {
+            senhaAntiga: document.getElementById('senha-antiga').value,
+            novaSenha: document.getElementById('nova-senha').value,
+        };
+        try {
+            const response = await fetch(`${backendBaseUrl}/api/usuarios/senha`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+                body: JSON.stringify(dadosSenha)
+            });
+            const resultado = await response.json();
+            if (!response.ok) throw new Error(resultado.error);
+            exibirNotificacao('Senha alterada com sucesso!', 'sucesso');
+            formAlterarSenha.reset();
+        } catch (error) {
+            exibirNotificacao(`Erro: ${error.message}`, 'erro');
+        }
+    });
+
+    btnDeletarConta.addEventListener('click', async () => {
+        if (confirm('ATENÇÃO: Você tem certeza que deseja deletar sua conta? Esta ação é permanente e todos os seus dados, incluindo veículos, serão perdidos.')) {
+            const token = obterToken();
+            try {
+                const response = await fetch(`${backendBaseUrl}/api/usuarios/conta`, {
+                    method: 'DELETE',
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                const resultado = await response.json();
+                if (!response.ok) throw new Error(resultado.error);
+                removerToken();
+                mostrarTelaAuth();
+                exibirNotificacao('Sua conta foi deletada com sucesso.', 'info');
+            } catch (error) {
+                exibirNotificacao(`Erro: ${error.message}`, 'erro');
             }
-            if (!response.ok) throw new Error('Falha ao buscar veículos do servidor.');
-            
+        }
+    });
+    
+    // --- Funções de Renderização e Atualização da UI ---
+    
+    function renderizarTudoUI() {
+        renderizarCardsGaragem();
+        atualizarPainelInteracaoUI();
+        preencherSelectVeiculosViagem();
+    }
+    
+    async function carregarVeiculosDoUsuario() {
+        const token = obterToken();
+        if (!token) return;
+        if (garagemDisplayCards) garagemDisplayCards.innerHTML = `<p class="placeholder"><i data-feather="loader" class="spin"></i> Carregando sua garagem...</p>`;
+        _renderFeatherIcons();
+        try {
+            const response = await fetch(`${backendBaseUrl}/api/veiculos`, { headers: { 'Authorization': `Bearer ${token}` } });
+            if (response.status === 401 || response.status === 403) {
+                removerToken();
+                mostrarTelaAuth();
+                exibirNotificacao('Sessão expirada. Faça login novamente.', 'aviso');
+                return;
+            }
+            if (!response.ok) throw new Error('Falha ao buscar veículos.');
             const veiculosDoDb = await response.json();
-            garagem.veiculos = []; 
+            garagem.veiculos = [];
             garagem.veiculoSelecionado = null;
-            
             veiculosDoDb.forEach(jsonVeiculo => {
                 const dadosParaClasse = { ...jsonVeiculo, id: jsonVeiculo._id };
-                // Supondo que você tenha um método estático fromJSON na sua classe Veiculo
-                // que instancia a classe correta (Carro, Caminhao, etc.)
-                const veiculo = Veiculo.fromJSON(dadosParaClasse); 
+                const veiculo = Veiculo.fromJSON(dadosParaClasse);
                 garagem.adicionarVeiculo(veiculo);
             });
-
-            renderizarCardsVeiculosUI();
-
+            renderizarTudoUI();
         } catch (error) {
             console.error("Erro ao carregar veículos:", error);
             exibirNotificacao(error.message, 'erro');
-            if (garagemDisplayCards) garagemDisplayCards.innerHTML = `<p class="erro"><i data-feather="alert-triangle"></i> Erro ao carregar garagem.</p>`;
+            if (garagemDisplayCards) garagemDisplayCards.innerHTML = `<p class="placeholder erro"><i data-feather="alert-triangle"></i> Erro ao carregar garagem.</p>`;
             _renderFeatherIcons();
         }
     }
+    
+    async function carregarGaragensDeAmigos() {
+        if (!garagensAmigosContainer) return;
+        garagensAmigosContainer.innerHTML = `<p class="placeholder"><i data-feather="loader" class="spin"></i> Carregando garagens...</p>`;
+        _renderFeatherIcons();
+        const token = obterToken();
+        try {
+            const response = await fetch(`${backendBaseUrl}/api/garagens-compartilhadas`, { headers: { 'Authorization': `Bearer ${token}` } });
+            const garagens = await response.json();
+            
+            if (garagens.length === 0) {
+                garagensAmigosContainer.innerHTML = '<p class="placeholder">Você não tem amigos ou eles ainda não cadastraram veículos.</p>';
+                return;
+            }
+            
+            const garagensAgrupadas = garagens.reduce((acc, veiculo) => {
+                const donoId = veiculo.usuarioId;
+                if (!acc[donoId]) {
+                    acc[donoId] = { nomeDono: veiculo.nomeDono, veiculos: [] };
+                }
+                acc[donoId].veiculos.push(veiculo);
+                return acc;
+            }, {});
 
-    /**
-     * Renderiza os cards dos veículos na aba "Minha Garagem".
-     */
-    function renderizarCardsVeiculosUI() {
+            garagensAmigosContainer.innerHTML = '';
+            for (const donoId in garagensAgrupadas) {
+                const grupo = garagensAgrupadas[donoId];
+                const grupoDiv = document.createElement('div');
+                grupoDiv.className = 'garagem-amigo-grupo';
+                let html = `<h3 class="garagem-amigo-header"><i data-feather="user"></i> Garagem de ${grupo.nomeDono}</h3>`;
+                html += '<div class="cards-container">';
+                grupo.veiculos.forEach(veiculo => {
+                    const veiculoObj = Veiculo.fromJSON({...veiculo, id: veiculo._id});
+                    html += criarHTMLCardVeiculo(veiculoObj, 'friend');
+                });
+                html += '</div>';
+                grupoDiv.innerHTML = html;
+                garagensAmigosContainer.appendChild(grupoDiv);
+            }
+            _renderFeatherIcons();
+        } catch (error) {
+            garagensAmigosContainer.innerHTML = '<p class="placeholder erro">Erro ao carregar garagens de amigos.</p>';
+        }
+    }
+
+    async function carregarVeiculosPublicos() {
+        if (!cardsVeiculosPublicosDiv) return;
+        cardsVeiculosPublicosDiv.innerHTML = `<p class="placeholder"><i data-feather="loader" class="spin"></i> Carregando vitrine pública...</p>`;
+        _renderFeatherIcons();
+        try {
+            const response = await fetch(`${backendBaseUrl}/api/veiculos/publicos`);
+            if (!response.ok) throw new Error('Falha ao buscar veículos públicos.');
+            
+            const veiculosPublicos = await response.json();
+            cardsVeiculosPublicosDiv.innerHTML = '';
+            
+            if (veiculosPublicos.length === 0) {
+                cardsVeiculosPublicosDiv.innerHTML = '<p class="placeholder">Nenhum veículo na vitrine pública no momento.</p>';
+                return;
+            }
+
+            veiculosPublicos.forEach(veiculo => {
+                const veiculoObj = Veiculo.fromJSON({...veiculo, id: veiculo._id});
+                const card = document.createElement('div');
+                card.className = 'card-veiculo';
+                card.innerHTML = `
+                    <div class="card-veiculo-header">
+                        <h3><i data-feather="truck"></i> ${veiculo.marca} ${veiculo.modelo}</h3>
+                    </div>
+                    <div class="card-veiculo-body">
+                        <p><strong>Placa:</strong> ${veiculo.placa}</p>
+                        <p><strong>Ano:</strong> ${veiculo.ano}</p>
+                        <p><strong>Cor:</strong> ${veiculo.cor}</p>
+                    </div>
+                    <div class="card-veiculo-footer">
+                        <span class="dono-info"><i data-feather="user"></i> ${veiculo.nomeDono}</span>
+                        <span class="dono-info" style="color: var(--success);"><i data-feather="globe"></i> Público</span>
+                    </div>
+                    <div class="card-veiculo-actions" style="grid-template-columns: 1fr;">
+                         <button class="btn-card-interagir" onclick="window.selecionarParaInteragir('${veiculo._id}', true)"><i data-feather="cpu"></i> Interagir</button>
+                    </div>
+                `;
+                cardsVeiculosPublicosDiv.appendChild(card);
+            });
+            _renderFeatherIcons();
+        } catch (error) {
+            console.error("Erro ao carregar veículos públicos:", error);
+            cardsVeiculosPublicosDiv.innerHTML = `<p class="placeholder erro">Não foi possível carregar a vitrine pública.</p>`;
+        }
+    }
+
+    function renderizarCardsGaragem() {
         if (!garagemDisplayCards) return;
-        
         garagemDisplayCards.innerHTML = '';
+        const usuarioLogado = obterUsuario();
+        if (!usuarioLogado) return;
+
         if (garagem.veiculos.length === 0) {
-            garagemDisplayCards.innerHTML = '<p>Sua garagem está vazia. Adicione um veículo!</p>';
+            garagemDisplayCards.innerHTML = '<p class="placeholder">Sua garagem está vazia. Adicione um veículo na aba "Minha Garagem" (que será a primeira opção após o login).</p>';
             return;
         }
 
         garagem.veiculos.forEach(veiculo => {
-            const estaSelecionado = garagem.getVeiculoSelecionado()?.id === veiculo.id;
+            const isOwner = veiculo.usuarioId === usuarioLogado.id;
+            let userPermission = 'none';
+            if(isOwner) {
+                userPermission = 'owner';
+            } else {
+                const sharedInfo = veiculo.sharedWith.find(s => s.usuario === usuarioLogado.id);
+                if (sharedInfo) {
+                    userPermission = sharedInfo.permissao;
+                }
+            }
+
             const card = document.createElement('div');
-            card.className = `card-veiculo ${estaSelecionado ? 'selecionado' : ''}`;
-            card.dataset.id = veiculo.id;
-
-            const modeloInfoSeguro = `${veiculo.marca} ${veiculo.modelo}`.replace(/'/g, "\\'").replace(/"/g, '\\"');
-
-            card.innerHTML = `
-                <div class="card-veiculo-header">
-                    <h3><i data-feather="truck"></i> ${veiculo.marca} ${veiculo.modelo}</h3>
-                    <span class="veiculo-placa">${veiculo.placa}</span>
-                </div>
-                <div class="card-veiculo-body">
-                    <p><strong>Ano:</strong> ${veiculo.ano}</p>
-                    <p><strong>Cor:</strong> ${veiculo.cor}</p>
-                    <p><strong>Tipo:</strong> ${veiculo.constructor.name}</p>
-                </div>
-                <div class="card-veiculo-actions">
-                    <button class="btn-card-selecionar" data-id="${veiculo.id}">
-                        <i data-feather="cpu"></i> Interagir
-                    </button>
-                    <button class="btn-card-editar" onclick="window.abrirModalEdicao('${veiculo.id}')">
-                        <i data-feather="edit-2"></i> Editar
-                    </button>
-                    <button class="btn-card-excluir" onclick="window.confirmarRemocaoVeiculo('${veiculo.id}', '${modeloInfoSeguro}')">
-                        <i data-feather="trash-2"></i> Excluir
-                    </button>
-                </div>
-            `;
+            card.className = `card-veiculo ${garagem.getVeiculoSelecionado()?.id === veiculo.id ? 'selecionado' : ''}`;
+            card.innerHTML = criarHTMLCardVeiculo(veiculo, userPermission);
             garagemDisplayCards.appendChild(card);
         });
+        _renderFeatherIcons();
+    }
+    
+    function criarHTMLCardVeiculo(veiculo, permissionLevel) {
+        const isOwner = permissionLevel === 'owner';
+        const isCollaborator = permissionLevel === 'colaborador';
+        const isFriend = permissionLevel === 'friend';
+        const canEdit = isOwner || isCollaborator || isFriend;
+        const canShare = isOwner;
 
-        garagemDisplayCards.querySelectorAll('.btn-card-selecionar').forEach(button => {
-            button.addEventListener('click', (e) => {
-                const id = e.currentTarget.dataset.id;
-                if (garagem.selecionarVeiculoPorId(id)) {
-                    // Aqui você pode adicionar a lógica para atualizar a aba "Interagir"
-                    renderizarCardsVeiculosUI();
-                }
-            });
-        });
+        let tagHTML = '';
+        if (isOwner) {
+            tagHTML = `<span class="card-tag tag-owner">Proprietário</span>`;
+        } else if (isCollaborator) {
+            tagHTML = `<span class="card-tag tag-collaborator">Colaborador</span>`;
+        } else if (isFriend) {
+            tagHTML = `<span class="card-tag tag-collaborator">Amigo</span>`;
+        } else {
+             tagHTML = `<span class="card-tag tag-viewer">Compartilhado</span>`;
+        }
 
+        let actionsHTML = `<button class="btn-card-interagir" onclick="window.selecionarParaInteragir('${veiculo.id}')"><i data-feather="cpu"></i> Interagir</button>`;
+        if (canEdit) {
+            actionsHTML += `<button class="btn-card-editar" onclick="window.abrirModalEdicao('${veiculo.id}')"><i data-feather="edit-2"></i> Editar</button>`;
+        }
+        if (canShare) {
+            actionsHTML += `<button class="btn-card-compartilhar" onclick="window.abrirModalCompartilhar('${veiculo.id}')"><i data-feather="share-2"></i> Compartilhar</button>`;
+        }
+        if (isOwner || isCollaborator) {
+            const modeloInfoSeguro = `${veiculo.marca} ${veiculo.modelo}`.replace(/'/g, "\\'").replace(/"/g, '\\"');
+            actionsHTML += `<button class="btn-card-excluir" onclick="window.confirmarRemocaoVeiculo('${veiculo.id}', '${modeloInfoSeguro}')"><i data-feather="trash-2"></i> Excluir</button>`;
+        }
+
+        const actionColumnCount = actionsHTML.match(/<button/g)?.length || 1;
+
+        return `
+            <div class="card-veiculo-header">
+                <h3><i data-feather="truck"></i> ${veiculo.marca} ${veiculo.modelo}</h3>
+                ${tagHTML}
+            </div>
+            <div class="card-veiculo-body">
+                <p><strong>Placa:</strong> ${veiculo.placa}</p>
+                <p><strong>Ano:</strong> ${veiculo.ano}</p>
+                <p><strong>Cor:</strong> ${veiculo.cor}</p>
+            </div>
+            <div class="card-veiculo-footer">
+                <span class="dono-info"><i data-feather="user"></i> ${veiculo.nomeDono}</span>
+                <div class="visibilidade-controle">
+                    <label class="switch" title="Alterar visibilidade">
+                        <input type="checkbox" onchange="window.alternarVisibilidade('${veiculo.id}', this.checked)" ${veiculo.publico ? 'checked' : ''} ${!canEdit ? 'disabled' : ''}>
+                        <span class="slider round"></span>
+                    </label>
+                    <span>Público</span>
+                </div>
+            </div>
+            <div class="card-veiculo-actions" style="grid-template-columns: repeat(${actionColumnCount}, 1fr);">
+                ${actionsHTML}
+            </div>
+        `;
+    }
+
+    async function atualizarPainelInteracaoUI() {
+        const veiculo = garagem.getVeiculoSelecionado();
+        if (!nomeVeiculoInteracaoSpan || !divInfoVeiculoSelecionado) return;
+        if (veiculo) {
+            nomeVeiculoInteracaoSpan.textContent = `${veiculo.constructor.name} ${veiculo.modelo}`;
+            divInfoVeiculoSelecionado.innerHTML = veiculo.exibirInformacoes();
+            document.querySelectorAll('.acao-especifica').forEach(el => el.style.display = 'none');
+            if (veiculo instanceof CarroEsportivo) { document.querySelectorAll('.carroesportivo-action').forEach(el => el.style.display = 'inline-block'); }
+            if (veiculo instanceof Caminhao) { document.querySelectorAll('.caminhao-action').forEach(el => el.style.display = 'inline-block'); }
+            divBotoesAcoesComuns.style.display = 'block';
+            divBotoesAcoesEspecificas.style.display = 'block';
+            secaoManutencao.style.display = 'block';
+            manutencaoVeiculoIdInput.value = veiculo.id;
+            await carregarEExibirManutencoes(veiculo.id);
+        } else {
+            nomeVeiculoInteracaoSpan.textContent = "Nenhum";
+            divInfoVeiculoSelecionado.innerHTML = "<p>Selecione um veículo na aba 'Minha Garagem'.</p>";
+            divBotoesAcoesComuns.style.display = 'none';
+            divBotoesAcoesEspecificas.style.display = 'none';
+            secaoManutencao.style.display = 'none';
+        }
+        ulLogInteracoes.innerHTML = garagem.getHistoricoInteracoesFormatado();
         _renderFeatherIcons();
     }
 
-    // --- Lógica dos Formulários do App ---
+    if (tipoVeiculoSelect) {
+        tipoVeiculoSelect.addEventListener('change', () => {
+            camposEspecificosDivs.forEach(div => div.style.display = 'none');
+            const divToShow = document.getElementById(`campos-${tipoVeiculoSelect.value.toLowerCase()}`);
+            if (divToShow) divToShow.style.display = 'block';
+        });
+    }
 
-    // Event Listener para ADICIONAR um novo veículo
     formAddVeiculo.addEventListener('submit', async (e) => {
         e.preventDefault();
         const token = obterToken();
@@ -375,7 +705,6 @@ document.addEventListener('DOMContentLoaded', () => {
         submitButton.disabled = true;
         submitButton.innerHTML = '<i data-feather="loader" class="spin"></i> Salvando...';
         _renderFeatherIcons();
-
         const fd = new FormData(formAddVeiculo);
         const dadosVeiculo = {
             placa: fd.get('placa')?.toUpperCase().trim().replace(/-/g, ''),
@@ -391,27 +720,21 @@ document.addEventListener('DOMContentLoaded', () => {
             case 'CarroEsportivo': dadosVeiculo.detalhes.velocidadeMaximaTurbo = parseInt(fd.get('velocidade-maxima-turbo')) || 250; break;
             case 'Caminhao': dadosVeiculo.detalhes.capacidadeCarga = parseFloat(fd.get('capacidade-carga')) || 1000; break;
         }
-
         try {
             const response = await fetch(`${backendBaseUrl}/api/veiculos`, {
                 method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${token}`
-                },
+                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
                 body: JSON.stringify(dadosVeiculo),
             });
             const resultado = await response.json();
             if (!response.ok) throw new Error(resultado.error);
-            
-            exibirNotificacao(`Veículo ${resultado.modelo} adicionado com sucesso!`, 'sucesso');
+            exibirNotificacao(`Veículo ${resultado.modelo} adicionado!`, 'sucesso');
             formAddVeiculo.reset();
             if (tipoVeiculoSelect) tipoVeiculoSelect.dispatchEvent(new Event('change'));
-            await carregarVeiculosDoBackend();
-            // Após adicionar, volta para a garagem
-            mostrarPainel('minha-garagem');
+            await carregarVeiculosDoUsuario();
+            document.querySelector('.nav-button[data-target="tab-garagem"]').click();
         } catch (error) {
-            exibirNotificacao(`Erro ao adicionar veículo: ${error.message}`, 'erro');
+            exibirNotificacao(`Erro: ${error.message}`, 'erro');
         } finally {
             submitButton.disabled = false;
             submitButton.innerHTML = '<i data-feather="save"></i> Salvar Veículo';
@@ -419,99 +742,403 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
-    // --- Funções Globais para os botões (Update e Delete) ---
-    // Colocamos as funções no objeto `window` para que o `onclick` no HTML possa encontrá-las.
+    const todosBotoesDeAcao = document.querySelectorAll('#botoesAcoesComuns button, #botoesAcoesEspecificas button, #botoesAcoesEspecificas input + button');
+    todosBotoesDeAcao.forEach(button => {
+        button.addEventListener('click', () => {
+            const acao = button.dataset.acao;
+            let valor = null;
+            if(acao === 'carregar') valor = document.getElementById('input-carga').value;
+            if(acao === 'descarregar') valor = document.getElementById('input-descarga').value;
+            garagem.interagirComSelecionado(acao, valor);
+            atualizarPainelInteracaoUI();
+        });
+    });
 
-    /**
-     * Pede confirmação e envia a requisição para DELETAR um veículo.
-     */
+    async function carregarEExibirManutencoes(veiculoId) {
+        if (!listaManutencoesDiv) return;
+        listaManutencoesDiv.innerHTML = `<p class="placeholder"><i data-feather="loader" class="spin"></i> Carregando histórico...</p>`;
+        _renderFeatherIcons();
+        try {
+            const token = obterToken();
+            const response = await fetch(`${backendBaseUrl}/api/veiculos/${veiculoId}/manutencoes`, { headers: { 'Authorization': `Bearer ${token}` } });
+            if (!response.ok) throw new Error('Falha ao carregar manutenções.');
+            const manutencoes = await response.json();
+            if (manutencoes.length === 0) {
+                listaManutencoesDiv.innerHTML = '<p class="placeholder">Nenhum registro de manutenção encontrado.</p>';
+                return;
+            }
+            let html = '<ul>';
+            manutencoes.forEach(m => {
+                const dataFormatada = new Date(m.data).toLocaleDateString('pt-BR', { timeZone: 'UTC' });
+                const custoFormatado = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(m.custo);
+                html += `
+                    <li class="manutencao-item">
+                        <div class="manutencao-info">
+                            <strong>${m.descricaoServico}</strong>
+                            <span>${dataFormatada} - ${custoFormatado}</span>
+                        </div>
+                        ${m.quilometragem ? `<span class="manutencao-km">${m.quilometragem.toLocaleString('pt-BR')} km</span>` : ''}
+                    </li>
+                `;
+            });
+            html += '</ul>';
+            listaManutencoesDiv.innerHTML = html;
+        } catch (error) {
+            listaManutencoesDiv.innerHTML = `<p class="placeholder erro"><i data-feather="alert-triangle"></i> Falha ao carregar histórico.</p>`;
+            _renderFeatherIcons();
+        }
+    }
+
+    formAddManutencao.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const veiculoId = manutencaoVeiculoIdInput.value;
+        if (!veiculoId) {
+            exibirNotificacao("Selecione um veículo para adicionar manutenção.", 'erro');
+            return;
+        }
+        const token = obterToken();
+        const submitButton = formAddManutencao.querySelector('button[type="submit"]');
+        submitButton.disabled = true;
+        submitButton.innerHTML = '<i data-feather="loader" class="spin"></i> Salvando...';
+        _renderFeatherIcons();
+        const dadosFormulario = {
+            descricaoServico: document.getElementById('manutencao-descricao').value,
+            data: document.getElementById('manutencao-data').value,
+            custo: parseFloat(document.getElementById('manutencao-custo').value),
+            quilometragem: document.getElementById('manutencao-km').value ? parseInt(document.getElementById('manutencao-km').value) : undefined
+        };
+        try {
+            const response = await fetch(`${backendBaseUrl}/api/veiculos/${veiculoId}/manutencoes`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+                body: JSON.stringify(dadosFormulario)
+            });
+            const resultado = await response.json();
+            if (!response.ok) throw new Error(resultado.error);
+            exibirNotificacao('Manutenção adicionada!', 'sucesso');
+            formAddManutencao.reset();
+            await carregarEExibirManutencoes(veiculoId);
+        } catch (error) {
+            exibirNotificacao(`Erro: ${error.message}`, 'erro');
+        } finally {
+            submitButton.disabled = false;
+            submitButton.innerHTML = '<i data-feather="save"></i> Salvar Manutenção';
+            _renderFeatherIcons();
+        }
+    });
+
     window.confirmarRemocaoVeiculo = async (id, modeloInfo) => {
-        if (confirm(`Tem certeza que deseja remover o veículo ${modeloInfo}? Esta ação é permanente.`)) {
+        if (confirm(`Remover o veículo ${modeloInfo}?`)) {
             const token = obterToken();
             try {
-                const response = await fetch(`${backendBaseUrl}/api/veiculos/${id}`, {
-                    method: 'DELETE',
-                    headers: { 'Authorization': `Bearer ${token}` }
-                });
+                const response = await fetch(`${backendBaseUrl}/api/veiculos/${id}`, { method: 'DELETE', headers: { 'Authorization': `Bearer ${token}` } });
                 const resultado = await response.json();
                 if (!response.ok) throw new Error(resultado.error);
-                
                 exibirNotificacao(resultado.message, 'sucesso');
-                await carregarVeiculosDoBackend();
+                await carregarVeiculosDoUsuario();
             } catch (error) {
-                exibirNotificacao(`Erro ao remover: ${error.message}`, 'erro');
+                exibirNotificacao(`Erro: ${error.message}`, 'erro');
             }
         }
     };
 
-    /**
-     * Abre o modal de edição e preenche com os dados do veículo.
-     */
     window.abrirModalEdicao = (id) => {
         const veiculo = garagem.encontrarVeiculoPorId(id);
         if (veiculo && modalEditarVeiculo) {
-            document.getElementById('modal-editar-veiculo-titulo').textContent = `${veiculo.modelo} (${veiculo.placa})`;
-            document.getElementById('editar-veiculo-id').value = veiculo.id;
+            modalEditarTituloSpan.textContent = `${veiculo.modelo} (${veiculo.placa})`;
+            editarVeiculoIdInput.value = veiculo.id;
             document.getElementById('editar-marca').value = veiculo.marca;
             document.getElementById('editar-modelo').value = veiculo.modelo;
             document.getElementById('editar-ano').value = veiculo.ano;
             document.getElementById('editar-cor').value = veiculo.cor;
-            
-            // Lógica para campos específicos...
-            
+            camposEspecificosEditarDivs.forEach(div => div.style.display = 'none');
+            const tipo = veiculo.constructor.name;
+            if (tipo === 'Carro' || tipo === 'CarroEsportivo') {
+                 const el = document.getElementById('campos-editar-carro');
+                 if(el) el.style.display = 'block';
+                 document.getElementById('editar-numero-portas').value = veiculo.numeroPortas || '';
+            }
+            if (tipo === 'CarroEsportivo') {
+                 const el = document.getElementById('campos-editar-carroesportivo');
+                 if(el) el.style.display = 'block';
+                 document.getElementById('editar-velocidade-maxima-turbo').value = veiculo.velocidadeMaximaTurbo || '';
+            }
+            if (tipo === 'Caminhao') {
+                 const el = document.getElementById('campos-editar-caminhao');
+                 if(el) el.style.display = 'block';
+                 document.getElementById('editar-capacidade-carga').value = veiculo.capacidadeCarga || '';
+            }
             modalEditarVeiculo.style.display = 'block';
             _renderFeatherIcons();
-        } else {
-            exibirNotificacao("Veículo não encontrado para editar.", 'erro');
         }
     };
     
-    /**
-     * Fecha o modal de edição.
-     */
-    window.fecharModalEdicao = () => {
-        if (modalEditarVeiculo) modalEditarVeiculo.style.display = 'none';
-    };
+    window.fecharModalEdicao = () => { if (modalEditarVeiculo) modalEditarVeiculo.style.display = 'none'; };
+    window.addEventListener('click', (event) => { if (event.target === modalEditarVeiculo) window.fecharModalEdicao(); });
 
-    // Evento para fechar o modal clicando fora dele
-    window.addEventListener('click', (event) => {
-        if (event.target === modalEditarVeiculo) {
-            window.fecharModalEdicao();
-        }
-    });
-
-    // Event Listener para o formulário de EDIÇÃO de veículo
     formEditarVeiculo.addEventListener('submit', async (e) => {
         e.preventDefault();
         const token = obterToken();
-        const id = document.getElementById('editar-veiculo-id').value;
-        
+        const id = editarVeiculoIdInput.value;
         const dadosAtualizados = {
-            marca: document.getElementById('editar-marca').value,
-            modelo: document.getElementById('editar-modelo').value,
+            marca: document.getElementById('editar-marca').value.trim(),
+            modelo: document.getElementById('editar-modelo').value.trim(),
             ano: parseInt(document.getElementById('editar-ano').value),
-            cor: document.getElementById('editar-cor').value,
-            detalhes: {} // Adicionar lógica para detalhes específicos se necessário
+            cor: document.getElementById('editar-cor').value.trim() || "Não informada",
+            detalhes: {}
         };
-
+        const numPortasInput = document.getElementById('editar-numero-portas');
+        if (numPortasInput && numPortasInput.closest('.campos-especificos-editar').style.display !== 'none') dadosAtualizados.detalhes.numeroPortas = parseInt(numPortasInput.value);
+        const velTurboInput = document.getElementById('editar-velocidade-maxima-turbo');
+        if (velTurboInput && velTurboInput.closest('.campos-especificos-editar').style.display !== 'none') dadosAtualizados.detalhes.velocidadeMaximaTurbo = parseInt(velTurboInput.value);
+        const cargaInput = document.getElementById('editar-capacidade-carga');
+        if (cargaInput && cargaInput.closest('.campos-especificos-editar').style.display !== 'none') dadosAtualizados.detalhes.capacidadeCarga = parseFloat(cargaInput.value);
         try {
             const response = await fetch(`${backendBaseUrl}/api/veiculos/${id}`, {
                 method: 'PUT',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${token}`
-                },
+                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
                 body: JSON.stringify(dadosAtualizados)
             });
             const resultado = await response.json();
             if (!response.ok) throw new Error(resultado.error);
-            
-            exibirNotificacao('Veículo atualizado com sucesso!', 'sucesso');
+            exibirNotificacao('Veículo atualizado!', 'sucesso');
             window.fecharModalEdicao();
-            await carregarVeiculosDoBackend();
+            await carregarVeiculosDoUsuario();
         } catch (error) {
-            exibirNotificacao(`Erro ao atualizar: ${error.message}`, 'erro');
+            exibirNotificacao(`Erro: ${error.message}`, 'erro');
         }
     });
 
-}); // Fim do listener 'DOMContentLoaded'
+    window.alternarVisibilidade = async (id, ehPublico) => {
+        const token = obterToken();
+        try {
+            const response = await fetch(`${backendBaseUrl}/api/veiculos/${id}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+                body: JSON.stringify({ publico: ehPublico })
+            });
+            const resultado = await response.json();
+            if (!response.ok) throw new Error(resultado.error);
+            exibirNotificacao(`Visibilidade atualizada para ${ehPublico ? 'Público' : 'Privado'}.`, 'sucesso');
+            const veiculoLocal = garagem.encontrarVeiculoPorId(id);
+            if (veiculoLocal) veiculoLocal.publico = ehPublico;
+        } catch (error) {
+            exibirNotificacao(`Erro: ${error.message}`, 'erro');
+            renderizarCardsGaragem();
+        }
+    };
+    
+    window.abrirModalCompartilhar = (veiculoId) => {
+        const veiculo = garagem.encontrarVeiculoPorId(veiculoId);
+        if (veiculo) {
+            document.getElementById('modal-compartilhar-nome-veiculo').textContent = `${veiculo.marca} ${veiculo.modelo}`;
+            document.getElementById('compartilhar-veiculo-id').value = veiculoId;
+            modalCompartilharVeiculo.style.display = 'block';
+        }
+    };
+    window.fecharModalCompartilhar = () => {
+        if (modalCompartilharVeiculo) {
+            modalCompartilharVeiculo.style.display = 'none';
+            formCompartilharVeiculo.reset();
+        }
+    };
+     window.addEventListener('click', (event) => { if (event.target === modalCompartilharVeiculo) window.fecharModalCompartilhar(); });
+
+    formCompartilharVeiculo.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const token = obterToken();
+        const veiculoId = document.getElementById('compartilhar-veiculo-id').value;
+        const email = document.getElementById('compartilhar-email').value;
+        const permissao = document.querySelector('input[name="permissao"]:checked').value;
+        try {
+            const response = await fetch(`${backendBaseUrl}/api/veiculos/${veiculoId}/share`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}`},
+                body: JSON.stringify({ email, permissao })
+            });
+            const resultado = await response.json();
+            if(!response.ok) throw new Error(resultado.error);
+            exibirNotificacao(resultado.message, 'sucesso');
+            window.fecharModalCompartilhar();
+        } catch (error) {
+            exibirNotificacao(`Erro: ${error.message}`, 'erro');
+        }
+    });
+
+    window.selecionarParaInteragir = (veiculoId, isPublic) => {
+        let veiculo = garagem.encontrarVeiculoPorId(veiculoId);
+        if (!veiculo && isPublic) {
+            exibirNotificacao("Interação detalhada disponível apenas para veículos na sua garagem.", "info");
+            return;
+        }
+        if (garagem.selecionarVeiculoPorId(veiculoId)) {
+            document.querySelector('.nav-button[data-target="tab-interagir"]').click();
+        }
+    };
+
+    function preencherSelectVeiculosViagem() {
+        if (!selectViagemVeiculo) return;
+        selectViagemVeiculo.innerHTML = '<option value="">-- Selecione --</option>';
+        garagem.veiculos.forEach(v => {
+            const opt = document.createElement('option');
+            opt.value = v.placa;
+            opt.textContent = `${v.constructor.name} ${v.modelo}`;
+            selectViagemVeiculo.appendChild(opt);
+        });
+    }
+
+    async function carregarRecursosPublicos() {
+        if (!cardsVeiculosDestaqueDiv || !listaServicosOferecidosUl) return;
+        try {
+            const [destaquesRes, servicosRes] = await Promise.all([
+                fetch(`${backendBaseUrl}/api/garagem/veiculos-destaque`),
+                fetch(`${backendBaseUrl}/api/garagem/servicos-oferecidos`)
+            ]);
+            if (!destaquesRes.ok || !servicosRes.ok) throw new Error('Falha ao carregar recursos.');
+            const destaques = await destaquesRes.json();
+            const servicos = await servicosRes.json();
+            
+            cardsVeiculosDestaqueDiv.innerHTML = destaques.map(v => 
+                `<div class="veiculo-destaque-card">
+                    <img src="${v.imagemUrl || 'images/placeholder_car.png'}" alt="${v.modelo}">
+                    <h4>${v.modelo}</h4>
+                    <p class="ano-destaque">Ano: ${v.ano}</p>
+                    <p class="texto-destaque">${v.destaque}</p>
+                </div>`
+            ).join('');
+            
+            listaServicosOferecidosUl.innerHTML = servicos.map(s => 
+                `<li><strong>${s.nome}</strong>: ${s.descricao}</li>`
+            ).join('');
+        } catch (error) {
+            console.error("Erro ao carregar recursos:", error);
+        }
+    }
+    
+    searchButtonViagem.addEventListener('click', async () => {
+        const city = cityInputViagem.value.trim();
+        if (!city) {
+            exibirNotificacao("Por favor, digite o nome de uma cidade.", "aviso");
+            return;
+        }
+        errorMessageDivViagem.style.display = 'none';
+        weatherResultDivViagem.innerHTML = `<p class="placeholder"><i data-feather="loader" class="spin"></i> Buscando previsão para ${city}...</p>`;
+        _renderFeatherIcons();
+        controlesPrevisao.style.display = 'none';
+        try {
+            const response = await fetch(`${backendBaseUrl}/api/forecast/${city}`);
+            const data = await response.json();
+            if (!response.ok) throw new Error(data.error || 'Erro desconhecido.');
+            previsaoCompletaCache = processarDadosPrevisao(data);
+            cidadeCache = data.city.name;
+            controlesPrevisao.style.display = 'block';
+            renderizarPrevisaoFiltrada();
+        } catch (error) {
+            errorMessageDivViagem.textContent = `Falha: ${error.message}`;
+            errorMessageDivViagem.style.display = 'block';
+            weatherResultDivViagem.innerHTML = `<p class="placeholder erro"><i data-feather="alert-triangle"></i> Não foi possível carregar a previsão.</p>`;
+            previsaoCompletaCache = null;
+        }
+    });
+    
+    btnsFiltroDias.forEach(button => {
+        button.addEventListener('click', () => {
+            diasFiltro = parseInt(button.dataset.dias);
+            btnsFiltroDias.forEach(btn => btn.classList.remove('active'));
+            button.classList.add('active');
+            renderizarPrevisaoFiltrada();
+        });
+    });
+    checkDestaqueFrio.addEventListener('change', () => {
+        destacarFrio = checkDestaqueFrio.checked;
+        renderizarPrevisaoFiltrada();
+    });
+    checkDestaqueQuente.addEventListener('change', () => {
+        destacarQuente = checkDestaqueQuente.checked;
+        renderizarPrevisaoFiltrada();
+    });
+
+    function processarDadosPrevisao(data) {
+        if (!data || !data.list) return null;
+        const previsoesPorDia = {};
+        data.list.forEach(item => {
+            const diaKey = new Date(item.dt * 1000).toISOString().split('T')[0];
+            if (!previsoesPorDia[diaKey]) {
+                previsoesPorDia[diaKey] = {
+                    dataFormatada: new Date(item.dt * 1000).toLocaleDateString('pt-BR', { weekday: 'short', day: '2-digit' }),
+                    temperaturas: [], icones: [], descricoes: []
+                };
+            }
+            previsoesPorDia[diaKey].temperaturas.push(item.main.temp);
+            previsoesPorDia[diaKey].icones.push(item.weather[0].icon);
+            previsoesPorDia[diaKey].descricoes.push(item.weather[0].description);
+        });
+        return Object.values(previsoesPorDia).map(diaInfo => {
+            const temp_min = Math.min(...diaInfo.temperaturas);
+            const temp_max = Math.max(...diaInfo.temperaturas);
+            return {
+                dataFormatada: diaInfo.dataFormatada,
+                temp_min: temp_min, temp_max: temp_max,
+                icone: diaInfo.icones[Math.floor(diaInfo.icones.length / 2)],
+                descricao: diaInfo.descricoes[Math.floor(diaInfo.descricoes.length / 2)]
+            };
+        });
+    }
+
+    function renderizarPrevisaoFiltrada() {
+        if (!previsaoCompletaCache) {
+            weatherResultDivViagem.innerHTML = '<p class="placeholder">Busque uma cidade para ver a previsão.</p>';
+            return;
+        }
+        const previsaoFiltrada = previsaoCompletaCache.slice(0, diasFiltro);
+        let html = `<h3><i data-feather="sun"></i> Previsão para ${cidadeCache}</h3><div class="forecast-container">`;
+        previsaoFiltrada.forEach(dia => {
+            let classesCard = 'forecast-day-card';
+            if (destacarFrio && dia.temp_min < 20) classesCard += ' destaque-frio';
+            if (destacarQuente && dia.temp_max > 30) classesCard += ' destaque-quente';
+            html += `
+                <div class="${classesCard}">
+                    <h4>${dia.dataFormatada}</h4>
+                    <img src="https://openweathermap.org/img/wn/${dia.icone}@2x.png" alt="${dia.descricao}">
+                    <p class="temp-range">
+                        <span class="temp-max">${dia.temp_max.toFixed(0)}°C</span> / 
+                        <span class="temp-min">${dia.temp_min.toFixed(0)}°C</span>
+                    </p>
+                    <p class="description">${dia.descricao}</p>
+                </div>
+            `;
+        });
+        html += '</div>';
+        weatherResultDivViagem.innerHTML = html;
+        _renderFeatherIcons();
+    }
+    
+    // ===================================================================
+    // PARTE 5: INICIALIZAÇÃO DA APLICAÇÃO
+    // ===================================================================
+    
+    function inicializarDadosDoApp() {
+        carregarVeiculosDoUsuario();
+        carregarVeiculosPublicos();
+        carregarRecursosPublicos();
+        if(navButtons.length > 0 && !document.querySelector('.nav-button.active')) {
+            navButtons[0].click();
+        }
+        _renderFeatherIcons();
+    }
+
+    function checarLoginInicial() {
+        const token = obterToken();
+        const usuario = obterUsuario();
+        if (token && usuario) {
+            mostrarApp();
+        } else {
+            mostrarTelaAuth();
+            carregarVeiculosPublicos();
+            carregarRecursosPublicos();
+        }
+        _renderFeatherIcons();
+    }
+
+    checarLoginInicial();
+});
