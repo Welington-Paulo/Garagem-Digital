@@ -1,28 +1,26 @@
-// JS/Carro.js
+// public/js/Carro.js
+
 class Carro extends Veiculo {
-    constructor(marca, modelo, ano, placa, cor, historicoManutencao = [], numeroPortas = 4) {
-        super(marca, modelo, ano, placa, cor, historicoManutencao);
-        this.numeroPortas = parseInt(numeroPortas) || 4;
+    // O construtor agora recebe o objeto JSON completo
+    constructor(jsonData) {
+        // A chamada 'super()' repassa todo o objeto de dados para a classe mãe (Veiculo)
+        // O Veiculo.constructor irá extrair id, placa, marca, etc., para nós.
+        super(jsonData);
+
+        // Define as propriedades específicas do Carro, pegando do sub-objeto 'detalhes'
+        // Se 'detalhes' ou 'numeroPortas' não existirem, usa 4 como padrão.
+        this.numeroPortas = jsonData.detalhes?.numeroPortas || 4;
     }
 
-    exibirDetalhesCard() { 
-        return `${super.exibirDetalhesBase()}, Portas: ${this.numeroPortas}, Motor: ${this.ligado ? 'ON' : 'OFF'}, Vel: ${this.velocidade}km/h`;
-    }
-    
-    exibirInformacoes() { 
+    // Sobrescreve o método da classe mãe para adicionar informações específicas do Carro
+    exibirInformacoes() {
+        // Chama o método original da classe Veiculo para obter o HTML com as informações básicas
+        const infoBase = super.exibirInformacoes();
+        
+        // Adiciona a informação específica do número de portas ao final do HTML
         return `
-            ${super.exibirInformacoes()}<br>
-            <strong>Portas:</strong> ${this.numeroPortas}
+            ${infoBase}
+            <p><strong>Nº de Portas:</strong> ${this.numeroPortas}</p>
         `;
-    }
-
-    getVelocidadeMaximaPermitida() {
-        return 200;
-    }
-
-    toJSON() {
-        const json = super.toJSON();
-        json.numeroPortas = this.numeroPortas;
-        return json;
     }
 }

@@ -1,7 +1,9 @@
 // public/js/ui.js
 
 const UI = {
-    // Cache de Elementos do DOM (pode ser expandido conforme necessário)
+    // ==================
+    // Cache de Elementos do DOM
+    // ==================
     notificacaoArea: document.getElementById('notificacao-area'),
     authContainer: document.getElementById('auth-container'),
     appContainer: document.getElementById('app-container'),
@@ -13,14 +15,15 @@ const UI = {
     garagensAmigosContainer: document.getElementById('garagens-amigos-container'),
     cardsVeiculosPublicosDiv: document.getElementById('cards-veiculos-publicos'),
 
-    // Função para renderizar ícones
+    // ==================
+    // Funções Utilitárias de UI
+    // ==================
     renderFeatherIcons() {
         if (typeof feather !== 'undefined') {
             feather.replace({ width: '1em', height: '1em' });
         }
     },
 
-    // Função para mostrar notificações
     exibirNotificacao(mensagem, tipo = 'info', duracao = 4000) {
         if (!this.notificacaoArea) return;
         const notificacao = document.createElement('div');
@@ -37,7 +40,9 @@ const UI = {
         }, duracao);
     },
 
-    // Funções de controle de tela
+    // ==================
+    // Funções de Controle de Tela e UI Geral
+    // ==================
     mostrarTelaAuth() {
         this.authContainer.classList.remove('hidden');
         this.appContainer.classList.add('hidden');
@@ -48,18 +53,65 @@ const UI = {
         this.appContainer.classList.remove('hidden');
     },
     
-    // Funções de atualização da UI
     atualizarHeaderUsuario(usuario) {
         if (usuario) {
             this.perfilAvatarImg.src = usuario.foto || 'images/default-avatar.png';
             this.perfilNomeSpan.textContent = usuario.nome;
         }
     },
-    
-    // --- Funções de Renderização das Listas ---
 
-    renderizarCardsGaragem(veiculos, usuarioLogadoId) {
-        if (!this.garagemDisplayCards) return;
+    atualizarPainelInteracaoUI() {
+        const nomeVeiculoSpan = document.getElementById('nome-veiculo-interacao');
+        const infoVeiculoDiv = document.getElementById('informacoesVeiculoSelecionado');
+        const botoesComunsDiv = document.getElementById('botoesAcoesComuns');
+        const botoesEspecificosDiv = document.getElementById('botoesAcoesEspecificas');
+        const logInteracoesUl = document.getElementById('logInteracoesVeiculo');
+        const secaoManutencao = document.getElementById('secao-manutencao-veiculo');
+
+        const garagem = main.getGaragem();
+        const veiculoInstancia = garagem.getVeiculoSelecionado();
+
+        if (veiculoInstancia) {
+            nomeVeiculoSpan.textContent = `${veiculoInstancia.constructor.name}: ${veiculoInstancia.marca} ${veiculoInstancia.modelo}`;
+            infoVeiculoDiv.innerHTML = veiculoInstancia.exibirInformacoes(); 
+            
+            botoesComunsDiv.style.display = 'block';
+            botoesEspecificosDiv.style.display = 'block';
+            
+            document.querySelectorAll('.acao-especifica').forEach(el => el.style.display = 'none');
+            if (veiculoInstancia instanceof CarroEsportivo) {
+                document.querySelectorAll('.carroesportivo-action').forEach(el => {
+                    el.style.display = el.classList.contains('acao-com-input') ? 'flex' : 'inline-block';
+                });
+            }
+            if (veiculoInstancia instanceof Caminhao) {
+                document.querySelectorAll('.caminhao-action').forEach(el => {
+                    el.style.display = el.classList.contains('acao-com-input') ? 'flex' : 'inline-block';
+                });
+            }
+
+            logInteracoesUl.innerHTML = garagem.getHistoricoInteracoesFormatado();
+
+            secaoManutencao.style.display = 'block';
+            document.getElementById('manutencao-veiculo-id').value = veiculoInstancia.id;
+            events.handleCarregarManutencoes(veiculoInstancia.id);
+
+        } else {
+            nomeVeiculoSpan.textContent = 'Nenhum';
+            infoVeiculoDiv.innerHTML = '<p>Selecione um veículo para interagir.</p>';
+            botoesComunsDiv.style.display = 'none';
+            botoesEspecificosDiv.style.display = 'none';
+            secaoManutencao.style.display = 'none';
+            logInteracoesUl.innerHTML = '<li>Nenhuma interação.</li>';
+        }
+        this.renderFeatherIcons();
+    },
+
+    // ==================
+    // Funções de Renderização das Listas
+    // ==================
+    renderizarCardsGaragem(veiculos, usuarioLogado, veiculoSelecionadoId) {
+        if (!this.garagemDisplayCards || !usuarioLogado) return;
         this.garagemDisplayCards.innerHTML = '';
 
         if (veiculos.length === 0) {
@@ -68,17 +120,17 @@ const UI = {
         }
 
         veiculos.forEach(veiculo => {
-            const isOwner = veiculo.usuarioId === usuarioLogadoId;
+            const isOwner = veiculo.usuarioId === usuarioLogado.id;
             let userPermission = 'none';
             if (isOwner) {
                 userPermission = 'owner';
             } else if (veiculo.sharedWith && Array.isArray(veiculo.sharedWith)) {
-                const sharedInfo = veiculo.sharedWith.find(s => s.usuario === usuarioLogadoId);
+                const sharedInfo = veiculo.sharedWith.find(s => s.usuario === usuarioLogado.id);
                 if (sharedInfo) userPermission = sharedInfo.permissao;
             }
-
+            
             const card = document.createElement('div');
-            card.className = 'card-veiculo';
+            card.className = `card-veiculo ${veiculo.id === veiculoSelecionadoId ? 'selecionado' : ''}`;
             card.innerHTML = this.criarHTMLCardVeiculo(veiculo, userPermission);
             this.garagemDisplayCards.appendChild(card);
         });
@@ -131,10 +183,13 @@ const UI = {
             const card = document.createElement('div');
             card.className = 'card-veiculo';
             card.innerHTML = `
-                <div class="card-veiculo-header"><h3><i data-feather="truck"></i> ${veiculo.marca} ${veiculo.modelo}</h3></div>
+                <div class="card-veiculo-header">
+                    <h3><i data-feather="truck"></i> ${veiculo.marca} ${veiculo.modelo}</h3>
+                </div>
                 <div class="card-veiculo-body">
                     <p><strong>Placa:</strong> ${veiculo.placa}</p>
                     <p><strong>Ano:</strong> ${veiculo.ano}</p>
+                    <p><strong>Cor:</strong> ${veiculo.cor}</p>
                 </div>
                 <div class="card-veiculo-footer">
                     <span class="dono-info"><i data-feather="user"></i> ${veiculo.nomeDono}</span>
@@ -163,7 +218,7 @@ const UI = {
                 <div class="amigo-info"><strong>${p.usuario.nome}</strong><span>${p.usuario.email}</span></div>
                 <div class="pedido-acoes">
                     <button class="btn-aceitar" onclick="events.responderPedido('${p.usuario._id}', 'accepted')"><i data-feather="check"></i> Aceitar</button>
-                    <button class="btn-recusar" onclick="window.responderPedido('${p.usuario._id}', 'declined')"><i data-feather="x"></i> Recusar</button>
+                    <button class="btn-recusar" onclick="events.responderPedido('${p.usuario._id}', 'declined')"><i data-feather="x"></i> Recusar</button>
                 </div>`;
             this.pedidosAmizadeLista.appendChild(item);
         });
@@ -187,7 +242,31 @@ const UI = {
         });
     },
 
-    // Função auxiliar para gerar o HTML do card de veículo
+    renderizarManutencoes(manutencoes) {
+        const listaManutencoesDiv = document.getElementById('lista-manutencoes-veiculo');
+        if (!listaManutencoesDiv) return;
+        
+        if (manutencoes.length === 0) {
+            listaManutencoesDiv.innerHTML = '<p class="placeholder">Nenhum registro de manutenção encontrado.</p>';
+            return;
+        }
+        let html = '<ul>';
+        manutencoes.forEach(m => {
+            const dataFormatada = new Date(m.data).toLocaleDateString('pt-BR', { timeZone: 'UTC' });
+            const custoFormatado = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(m.custo);
+            html += `
+                <li class="manutencao-item">
+                    <div class="manutencao-info">
+                        <strong>${m.descricaoServico}</strong>
+                        <span>${dataFormatada} - ${custoFormatado}</span>
+                    </div>
+                    ${m.quilometragem ? `<span class="manutencao-km">${m.quilometragem.toLocaleString('pt-BR')} km</span>` : ''}
+                </li>`;
+        });
+        html += '</ul>';
+        listaManutencoesDiv.innerHTML = html;
+    },
+
     criarHTMLCardVeiculo(veiculo, permissionLevel) {
         const isOwner = permissionLevel === 'owner';
         const isCollaborator = permissionLevel === 'colaborador';
@@ -201,12 +280,16 @@ const UI = {
         else if (isFriend) tagHTML = `<span class="card-tag tag-collaborator">Amigo</span>`;
         else tagHTML = `<span class="card-tag tag-viewer">Compartilhado</span>`;
 
-        let actionsHTML = `<button class="btn-card-interagir" onclick="events.selecionarParaInteragir('${veiculo._id}')"><i data-feather="cpu"></i> Interagir</button>`;
-        if (canEdit) actionsHTML += `<button class="btn-card-editar" onclick="events.abrirModalEdicao('${veiculo._id}')"><i data-feather="edit-2"></i> Editar</button>`;
-        if (canShare) actionsHTML += `<button class="btn-card-compartilhar" onclick="events.abrirModalCompartilhar('${veiculo._id}')"><i data-feather="share-2"></i> Compartilhar</button>`;
+        let actionsHTML = `<button class="btn-card-interagir" onclick="events.selecionarParaInteragir('${veiculo.id}')"><i data-feather="cpu"></i> Interagir</button>`;
+        if (canEdit) {
+            actionsHTML += `<button class="btn-card-editar" onclick="events.abrirModalEdicao('${veiculo.id}')"><i data-feather="edit-2"></i> Editar</button>`;
+        }
+        if (canShare) {
+            actionsHTML += `<button class="btn-card-compartilhar" onclick="events.abrirModalCompartilhar('${veiculo.id}')"><i data-feather="share-2"></i> Compartilhar</button>`;
+        }
         if (isOwner || isCollaborator) {
             const modeloInfoSeguro = `${veiculo.marca} ${veiculo.modelo}`.replace(/'/g, "\\'");
-            actionsHTML += `<button class="btn-card-excluir" onclick="events.confirmarRemocaoVeiculo('${veiculo._id}', '${modeloInfoSeguro}')"><i data-feather="trash-2"></i> Excluir</button>`;
+            actionsHTML += `<button class="btn-card-excluir" onclick="events.confirmarRemocaoVeiculo('${veiculo.id}', '${modeloInfoSeguro}')"><i data-feather="trash-2"></i> Excluir</button>`;
         }
         
         const actionColumnCount = actionsHTML.match(/<button/g)?.length || 1;
@@ -225,7 +308,7 @@ const UI = {
                 <span class="dono-info"><i data-feather="user"></i> ${veiculo.nomeDono}</span>
                 <div class="visibilidade-controle">
                     <label class="switch" title="Alterar visibilidade">
-                        <input type="checkbox" onchange="events.alternarVisibilidade('${veiculo._id}', this.checked)" ${veiculo.publico ? 'checked' : ''} ${!canEdit ? 'disabled' : ''}>
+                        <input type="checkbox" onchange="events.alternarVisibilidade('${veiculo.id}', this.checked)" ${veiculo.publico ? 'checked' : ''} ${!canEdit ? 'disabled' : ''}>
                         <span class="slider round"></span>
                     </label>
                     <span>Público</span>

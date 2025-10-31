@@ -62,6 +62,9 @@ const events = {
         if (targetId === 'tab-garagens-amigos') {
             events.handleGaragensAmigosTabLoad();
         }
+        if (targetId === 'tab-interagir') {
+            UI.atualizarPainelInteracaoUI();
+        }
 
         UI.renderFeatherIcons();
 
@@ -73,6 +76,15 @@ const events = {
 
     handlePerfilTabLoad: async () => {
         try {
+            const usuario = auth.obterUsuario();
+            if(usuario) {
+                document.getElementById('editar-nome').value = usuario.nome;
+                document.getElementById('editar-email').value = usuario.email;
+                const fotoUrl = usuario.foto === 'images/default-avatar.png' ? '' : usuario.foto;
+                document.getElementById('editar-foto-url').value = fotoUrl || '';
+                document.getElementById('editar-perfil-img').src = usuario.foto || 'images/default-avatar.png';
+            }
+            
             const amigos = await api.getAmigos();
             main.setAmigos(amigos);
             UI.renderizarPedidosAmizade(amigos.filter(a => a.status === 'pending_received'));
@@ -108,7 +120,7 @@ const events = {
         try {
             const novoVeiculo = await api.addVeiculo(dadosVeiculo);
             main.adicionarVeiculoLocal(novoVeiculo);
-            UI.renderizarCardsGaragem(main.getVeiculos(), auth.obterUsuario().id);
+            UI.renderizarCardsGaragem(main.getVeiculos(), auth.obterUsuario(), main.getGaragem().getVeiculoSelecionado()?.id);
             UI.exibirNotificacao(`Veículo ${novoVeiculo.modelo} adicionado!`, 'sucesso');
             main.fecharModal('add');
         } catch (error) {
@@ -128,7 +140,7 @@ const events = {
         try {
             const veiculoAtualizado = await api.updateVeiculo(id, dadosAtualizados);
             main.atualizarVeiculoLocal(id, veiculoAtualizado);
-            UI.renderizarCardsGaragem(main.getVeiculos(), auth.obterUsuario().id);
+            UI.renderizarCardsGaragem(main.getVeiculos(), auth.obterUsuario(), main.getGaragem().getVeiculoSelecionado()?.id);
             UI.exibirNotificacao('Veículo atualizado com sucesso!', 'sucesso');
             main.fecharModal('edit');
         } catch (error) {
@@ -142,7 +154,7 @@ const events = {
             UI.exibirNotificacao(`Visibilidade atualizada para ${ehPublico ? 'Público' : 'Privado'}.`, 'sucesso');
         } catch (error) {
             UI.exibirNotificacao(error.message, 'erro');
-            UI.renderizarCardsGaragem(main.getVeiculos(), auth.obterUsuario().id);
+            UI.renderizarCardsGaragem(main.getVeiculos(), auth.obterUsuario(), main.getGaragem().getVeiculoSelecionado()?.id);
         }
     },
     confirmarRemocaoVeiculo: async (id, modelo) => {
@@ -151,7 +163,7 @@ const events = {
                 const resultado = await api.deleteVeiculo(id);
                 UI.exibirNotificacao(resultado.message, 'sucesso');
                 main.removerVeiculoLocal(id);
-                UI.renderizarCardsGaragem(main.getVeiculos(), auth.obterUsuario().id);
+                UI.renderizarCardsGaragem(main.getVeiculos(), auth.obterUsuario(), main.getGaragem().getVeiculoSelecionado()?.id);
             } catch (error) {
                 UI.exibirNotificacao(error.message, 'erro');
             }
@@ -251,27 +263,81 @@ const events = {
     // Eventos de Modais e Interação
     // ==================
     abrirModalEdicao(id) {
-        const veiculo = main.getVeiculos().find(v => v._id === id);
-        if (veiculo) {
-            document.getElementById('modal-editar-veiculo-titulo').textContent = `${veiculo.marca} ${veiculo.modelo}`;
-            document.getElementById('editar-veiculo-id').value = veiculo._id;
-            document.getElementById('editar-marca').value = veiculo.marca;
-            document.getElementById('editar-modelo').value = veiculo.modelo;
-            document.getElementById('editar-ano').value = veiculo.ano;
-            document.getElementById('editar-cor').value = veiculo.cor;
-            document.getElementById('modal-editar-veiculo').style.display = 'block';
-        }
+        main.abrirModal('edit', id);
     },
     abrirModalCompartilhar(id) {
-        const veiculo = main.getVeiculos().find(v => v._id === id);
-        if(veiculo) {
-            document.getElementById('modal-compartilhar-nome-veiculo').textContent = `${veiculo.marca} ${veiculo.modelo}`;
-            document.getElementById('compartilhar-veiculo-id').value = id;
-            document.getElementById('modal-compartilhar-veiculo').style.display = 'block';
+        main.abrirModal('share', id);
+    },
+    selecionarParaInteragir: (id, isPublic = false) => {
+        if (isPublic) {
+            UI.exibirNotificacao("Interação detalhada não disponível para veículos públicos.", "info");
+            return;
+        }
+
+        const garagem = main.getGaragem();
+        if (garagem.selecionarVeiculoPorId(id)) {
+            const usuario = auth.obterUsuario();
+            UI.renderizarCardsGaragem(main.getVeiculos(), usuario, id);
+            
+            const navButton = document.querySelector('.nav-button[data-target="tab-interagir"]');
+            if (navButton) {
+                navButton.click();
+            }
+        } else {
+            console.error("events.js: Veículo com ID", id, "não foi encontrado na garagem.");
+            UI.exibirNotificacao("Erro ao selecionar veículo.", "erro");
         }
     },
-    selecionarParaInteragir(id) {
-        // Lógica para selecionar veículo (pode ser expandida)
-        console.log("Selecionando veículo para interagir:", id);
-    }
+    handleAcaoVeiculo: (e) => {
+        const button = e.currentTarget;
+        const acao = button.dataset.acao;
+        let valor = null;
+        
+        const garagem = main.getGaragem();
+        const veiculoSelecionado = garagem.getVeiculoSelecionado();
+        if (!veiculoSelecionado) {
+            UI.exibirNotificacao("Nenhum veículo selecionado para interagir.", "aviso");
+            return;
+        }
+
+        if (acao === 'carregar') valor = document.getElementById('input-carga').value;
+        if (acao === 'descarregar') valor = document.getElementById('input-descarga').value;
+
+        garagem.interagirComSelecionado(acao, valor);
+        UI.atualizarPainelInteracaoUI();
+    },
+    handleCarregarManutencoes: async (veiculoId) => {
+        const listaManutencoesDiv = document.getElementById('lista-manutencoes-veiculo');
+        if (!listaManutencoesDiv) return;
+        
+        listaManutencoesDiv.innerHTML = `<p class="placeholder"><i data-feather="loader" class="spin"></i> Carregando histórico...</p>`;
+        UI.renderFeatherIcons();
+        
+        try {
+            const manutencoes = await api.getManutencoes(veiculoId);
+            UI.renderizarManutencoes(manutencoes);
+        } catch (error) {
+            UI.exibirNotificacao("Falha ao carregar histórico de manutenção.", "erro");
+        }
+    },
+    handleAddManutencao: async (e) => {
+        e.preventDefault();
+        const form = e.target;
+        const veiculoId = form.querySelector('#manutencao-veiculo-id').value;
+        const dados = {
+            descricaoServico: form.querySelector('#manutencao-descricao').value,
+            data: form.querySelector('#manutencao-data').value,
+            custo: form.querySelector('#manutencao-custo').value,
+            quilometragem: form.querySelector('#manutencao-km').value,
+        };
+
+        try {
+            await api.addManutencao(veiculoId, dados);
+            UI.exibirNotificacao("Manutenção adicionada com sucesso!", "sucesso");
+            form.reset();
+            events.handleCarregarManutencoes(veiculoId);
+        } catch (error) {
+            UI.exibirNotificacao(error.message, 'erro');
+        }
+    },
 };

@@ -12,7 +12,7 @@
     <div id="notificacao-area"></div>
 
     <!-- =================================================================== -->
-    <!--      SEÇÃO DE AUTENTICAÇÃO (VISÍVEL POR PADRÃO)                   -->
+    <!--      SEÇÃO DE AUTENTICAÇÃO                                        -->
     <!-- =================================================================== -->
     <section id="auth-container">
         <div id="login-view">
@@ -52,7 +52,7 @@
     </section>
 
     <!-- =================================================================== -->
-    <!--      APP PRINCIPAL (ESCONDIDO POR PADRÃO)                         -->
+    <!--      APP PRINCIPAL                                                -->
     <!-- =================================================================== -->
     <div id="app-container" class="hidden">
         <header>
@@ -83,12 +83,15 @@
 
         <main>
             <section id="tab-garagem" class="tab-content active">
-                <h2><i data-feather="archive"></i> Minha Garagem</h2>
+                <div class="aba-header">
+                    <h2><i data-feather="archive"></i> Minha Garagem</h2>
+                    <button id="btn-abrir-modal-add" class="add-button"><i data-feather="plus"></i> Adicionar Veículo</button>
+                </div>
                 <div id="garagem-display-cards" class="cards-container">
                     <p class="placeholder">Carregando sua garagem...</p>
                 </div>
             </section>
-
+            
             <section id="tab-garagens-amigos" class="tab-content">
                 <h2><i data-feather="users"></i> Garagens de Amigos</h2>
                 <div id="garagens-amigos-container">
@@ -98,19 +101,9 @@
             
             <section id="tab-interagir" class="tab-content">
                 <h2><i data-feather="cpu"></i>Painel: <span id="nome-veiculo-interacao">Nenhum</span></h2>
-                <div id="informacoesVeiculoSelecionado"><p>Selecione um veículo.</p></div>
-                <div id="botoesAcoesComuns" style="display:none; margin-top: 1rem;">
-                    <button data-acao="ligar"><i data-feather="power"></i>Ligar</button>
-                    <button data-acao="desligar"><i data-feather="power"></i>Desligar</button>
-                    <button data-acao="acelerar"><i data-feather="arrow-up-circle"></i>Acelerar</button>
-                    <button data-acao="frear"><i data-feather="arrow-down-circle"></i>Frear</button>
-                    <button data-acao="buzinar"><i data-feather="volume-2"></i>Buzinar</button>
-                </div>
-                <div id="botoesAcoesEspecificas" style="display:none; margin-top: 1rem;">
-                    <button data-acao="ativarTurbo" class="acao-especifica carroesportivo-action" style="display: none;"><i data-feather="zap"></i>Turbo</button>
-                    <div class="acao-especifica caminhao-action acao-com-input" style="display: none;"><input type="number" id="input-carga" placeholder="Kg carregar" min="0"><button data-acao="carregar"><i data-feather="arrow-up"></i>Carregar</button></div>
-                    <div class="acao-especifica caminhao-action acao-com-input" style="display: none;"><input type="number" id="input-descarga" placeholder="Kg descarregar" min="0"><button data-acao="descarregar"><i data-feather="arrow-down"></i>Descarregar</button></div>
-                </div>
+                <div id="informacoesVeiculoSelecionado"><p>Selecione um veículo para interagir.</p></div>
+                <div id="botoesAcoesComuns" style="display:none; margin-top: 1rem;"><button data-acao="ligar"><i data-feather="power"></i>Ligar</button><button data-acao="desligar"><i data-feather="power" style="color: var(--error);"></i>Desligar</button><button data-acao="acelerar"><i data-feather="arrow-up-circle"></i>Acelerar</button><button data-acao="frear"><i data-feather="arrow-down-circle"></i>Frear</button><button data-acao="buzinar"><i data-feather="volume-2"></i>Buzinar</button></div>
+                <div id="botoesAcoesEspecificas" style="display:none; margin-top: 1rem;"><button data-acao="ativarTurbo" class="acao-especifica carroesportivo-action" style="display: none;"><i data-feather="zap"></i>Turbo</button><div class="acao-especifica caminhao-action acao-com-input" style="display: none;"><input type="number" id="input-carga" placeholder="Kg carregar" min="0"><button data-acao="carregar"><i data-feather="arrow-up"></i>Carregar</button></div><div class="acao-especifica caminhao-action acao-com-input" style="display: none;"><input type="number" id="input-descarga" placeholder="Kg descarregar" min="0"><button data-acao="descarregar"><i data-feather="arrow-down"></i>Descarregar</button></div></div>
                 <div id="secao-manutencao-veiculo" style="display:none; margin-top: 2rem;">
                     <hr class="info-divider">
                     <h4><i data-feather="tool"></i> Histórico de Manutenção</h4>
@@ -134,14 +127,8 @@
 
             <section id="tab-recursos" class="tab-content">
                 <h2><i data-feather="gift"></i>Recursos e Destaques da Garagem</h2>
-                <div class="recurso-section">
-                    <h3><i data-feather="globe"></i> Vitrine Pública da Comunidade</h3>
-                    <div id="cards-veiculos-publicos" class="cards-container"><p class="placeholder">Carregando veículos públicos...</p></div>
-                </div>
-                <div class="recurso-section">
-                    <h3><i data-feather="star"></i>Veículos em Destaque (Exemplo)</h3>
-                    <div id="cards-veiculos-destaque" class="cards-container"><p class="placeholder">Carregando...</p></div>
-                </div>
+                <div class="recurso-section"><h3><i data-feather="globe"></i> Vitrine Pública da Comunidade</h3><div id="cards-veiculos-publicos" class="cards-container"><p class="placeholder">Carregando...</p></div></div>
+                <div class="recurso-section"><h3><i data-feather="star"></i>Veículos em Destaque (Exemplo)</h3><div id="cards-veiculos-destaque" class="cards-container"><p class="placeholder">Carregando...</p></div></div>
             </section>
 
             <section id="tab-planejar-viagem" class="tab-content">
@@ -169,7 +156,7 @@
                 </div>
                 <div id="weatherResultViagem" style="margin-top:1rem;"><p class="placeholder">Digite uma cidade para ver a previsão do tempo.</p></div>
             </section>
-
+            
             <section id="tab-perfil" class="tab-content">
                 <h2><i data-feather="user"></i> Gerenciamento de Perfil e Amigos</h2>
                 <div class="perfil-layout">
@@ -183,7 +170,7 @@
                         </div>
                         <div class="perfil-card">
                             <h4><i data-feather="mail"></i> Pedidos Recebidos</h4>
-                            <div id="pedidos-amizade-lista"><p class="placeholder">Nenhum pedido de amizade pendente.</p></div>
+                            <div id="pedidos-amizade-lista"><p class="placeholder">Nenhum pedido pendente.</p></div>
                         </div>
                         <div class="perfil-card">
                             <h4><i data-feather="users"></i> Meus Amigos</h4>
@@ -217,19 +204,35 @@
                 </div>
             </section>
             
+            <div id="modal-add-veiculo" class="modal">
+                <div class="modal-content">
+                    <button class="close-button" onclick="main.fecharModal('add')"><i data-feather="x"></i></button>
+                    <h3><i data-feather="plus-square"></i> Adicionar Novo Veículo</h3>
+                    <form id="form-add-veiculo">
+                        <div><label for="tipo-veiculo">Tipo:</label><select id="tipo-veiculo" name="tipoVeiculo" required><option value="">Selecione...</option><option value="Carro">Carro</option><option value="CarroEsportivo">Carro Esportivo</option><option value="Caminhao">Caminhão</option></select></div>
+                        <div><label for="marca">Marca:</label><input type="text" id="marca" name="marca" required></div>
+                        <div><label for="modelo">Modelo:</label><input type="text" id="modelo" name="modelo" required></div>
+                        <div><label for="ano">Ano:</label><input type="number" id="ano" name="ano" required></div>
+                        <div><label for="placa">Placa:</label><input type="text" id="placa" name="placa" required></div>
+                        <div><label for="cor">Cor:</label><input type="text" id="cor" name="cor"></div>
+                        <div id="campos-carro" class="campos-especificos" style="display: none;"><label for="numero-portas">Nº de Portas:</label><input type="number" id="numero-portas" name="detalhes[numeroPortas]"></div>
+                        <div id="campos-carroesportivo" class="campos-especificos" style="display: none;"><label for="velocidade-maxima-turbo">Vel. Máx. Turbo:</label><input type="number" id="velocidade-maxima-turbo" name="detalhes[velocidadeMaximaTurbo]"></div>
+                        <div id="campos-caminhao" class="campos-especificos" style="display: none;"><label for="capacidade-carga">Capacidade Carga:</label><input type="number" id="capacidade-carga" name="detalhes[capacidadeCarga]"></div>
+                        <button type="submit"><i data-feather="save"></i> Salvar Veículo</button>
+                    </form>
+                </div>
+            </div>
+
             <div id="modal-editar-veiculo" class="modal">
                 <div class="modal-content">
-                    <button class="close-button" onclick="window.fecharModalEdicao()" aria-label="Fechar"><i data-feather="x"></i></button>
+                    <button class="close-button" onclick="main.fecharModal('edit')"><i data-feather="x"></i></button>
                     <h3><i data-feather="edit"></i> Editar Veículo <span id="modal-editar-veiculo-titulo"></span></h3>
                     <form id="form-editar-veiculo">
-                        <input type="hidden" id="editar-veiculo-id" name="veiculo-id">
+                        <input type="hidden" id="editar-veiculo-id" name="id">
                         <div><label for="editar-marca">Marca:</label><input type="text" id="editar-marca" name="marca" required></div>
                         <div><label for="editar-modelo">Modelo:</label><input type="text" id="editar-modelo" name="modelo" required></div>
-                        <div><label for="editar-ano">Ano:</label><input type="number" id="editar-ano" name="ano" required min="1886" max="2099"></div>
+                        <div><label for="editar-ano">Ano:</label><input type="number" id="editar-ano" name="ano" required></div>
                         <div><label for="editar-cor">Cor:</label><input type="text" id="editar-cor" name="cor"></div>
-                        <div id="campos-editar-carro" class="campos-especificos-editar" style="display: none;"><label for="editar-numero-portas">Nº Portas:</label><input type="number" id="editar-numero-portas" name="numero-portas" min="2"></div>
-                        <div id="campos-editar-carroesportivo" class="campos-especificos-editar" style="display: none;"><label for="editar-velocidade-maxima-turbo">Vel. Máx. Turbo (km/h):</label><input type="number" id="editar-velocidade-maxima-turbo" name="velocidade-maxima-turbo" min="100"></div>
-                        <div id="campos-editar-caminhao" class="campos-especificos-editar" style="display: none;"><label for="editar-capacidade-carga">Carga (kg):</label><input type="number" id="editar-capacidade-carga" name="capacidade-carga" min="100"></div>
                         <button type="submit"><i data-feather="save"></i> Salvar Alterações</button>
                     </form>
                 </div>
@@ -237,25 +240,17 @@
 
             <div id="modal-compartilhar-veiculo" class="modal">
                 <div class="modal-content">
-                    <button class="close-button" onclick="window.fecharModalCompartilhar()" aria-label="Fechar"><i data-feather="x"></i></button>
+                    <button class="close-button" onclick="main.fecharModal('share')"><i data-feather="x"></i></button>
                     <h3><i data-feather="share-2"></i> Compartilhar Veículo Específico</h3>
-                    <p>Compartilhe o acesso ao seu <strong id="modal-compartilhar-nome-veiculo"></strong> com outro usuário, definindo permissões específicas para este veículo.</p>
+                    <p>Compartilhe o acesso ao seu <strong id="modal-compartilhar-nome-veiculo"></strong> com outro usuário.</p>
                     <form id="form-compartilhar-veiculo">
                         <input type="hidden" id="compartilhar-veiculo-id">
                         <div><label for="compartilhar-email">Email do Usuário:</label><input type="email" id="compartilhar-email" required placeholder="exemplo@email.com"></div>
                         <div>
                             <label>Nível de Permissão:</label>
                             <div class="radio-group">
-                                <label class="radio-container">
-                                    <input type="radio" name="permissao" value="visualizador" checked> Visualizador
-                                    <span class="radio-checkmark"></span>
-                                    <small>Pode apenas ver o veículo e seu histórico.</small>
-                                </label>
-                                <label class="radio-container">
-                                    <input type="radio" name="permissao" value="colaborador"> Colaborador
-                                    <span class="radio-checkmark"></span>
-                                    <small>Pode editar, excluir, gerenciar e compartilhar este veículo.</small>
-                                </label>
+                                <label class="radio-container"><input type="radio" name="permissao" value="visualizador" checked> Visualizador<span class="radio-checkmark"></span><small>Pode apenas ver o veículo e seu histórico.</small></label>
+                                <label class="radio-container"><input type="radio" name="permissao" value="colaborador"> Colaborador<span class="radio-checkmark"></span><small>Pode editar, excluir e gerenciar o veículo.</small></label>
                             </div>
                         </div>
                         <button type="submit"><i data-feather="send"></i> Conceder Acesso</button>
@@ -267,22 +262,26 @@
         <footer><p>© <span id="ano-atual"></span> Garagem Inteligente Unificada.</p></footer>
     </div>
     
-    <script src="js/Manutencao.js"></script>
+    <script src="js/Garagem.js"></script>
     <script src="js/Veiculo.js"></script>
     <script src="js/Carro.js"></script>
     <script src="js/CarroEsportivo.js"></script>
     <script src="js/Caminhao.js"></script>
-    <script src="js/Garagem.js"></script>
-    <!-- Scripts Refatorados -->
-<script src="js/api.js"></script>
-<script src="js/ui.js"></script>
-<script src="js/auth.js"></script>
-<script src="js/events.js"></script>
-<script src="js/main.js"></script>
+    <script src="js/api.js"></script>
+    <script src="js/ui.js"></script>
+    <script src="js/auth.js"></script>
+    <script src="js/events.js"></script>
+    <script src="js/main.js"></script>
     <script>
-        if(typeof feather!=='undefined') feather.replace();
-        const el = document.getElementById('ano-atual');
-        if(el) el.textContent = new Date().getFullYear();
+        document.addEventListener('DOMContentLoaded', () => {
+            if(typeof feather !== 'undefined') {
+                feather.replace();
+            }
+            const el = document.getElementById('ano-atual');
+            if(el) {
+                el.textContent = new Date().getFullYear();
+            }
+        });
     </script>
 </body>
 </html>

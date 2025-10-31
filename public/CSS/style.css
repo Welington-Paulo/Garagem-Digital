@@ -411,3 +411,28 @@ input:checked + .slider:before { transform: translateX(20px); }
     border-left-color: var(--error);
     background-color: rgba(248, 81, 73, 0.05);
 }
+
+
+/* Em public/css/style.css (Adicionar ao final) */
+
+.aba-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 2px solid var(--accent-primary);
+    margin-bottom: 1.5rem;
+    padding-bottom: 0.75rem;
+}
+
+.aba-header h2 {
+    margin: 0;
+    padding: 0;
+    border: none;
+}
+
+.add-button {
+    font-size: 0.9rem;
+    padding: 0.6rem 1.2rem;
+    text-transform: none;
+    letter-spacing: 0;
+}
