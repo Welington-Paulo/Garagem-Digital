@@ -97,6 +97,7 @@ const events = {
     handleGaragensAmigosTabLoad: async () => {
         try {
             const garagens = await api.getGaragensAmigos();
+            main.setGaragensDeAmigos(garagens);
             UI.renderizarGaragensDeAmigos(garagens);
         } catch (error) {
             UI.exibirNotificacao(error.message, 'erro');
@@ -120,7 +121,7 @@ const events = {
         try {
             const novoVeiculo = await api.addVeiculo(dadosVeiculo);
             main.adicionarVeiculoLocal(novoVeiculo);
-            UI.renderizarCardsGaragem(main.getVeiculos(), auth.obterUsuario(), main.getGaragem().getVeiculoSelecionado()?.id);
+            UI.renderizarCardsGaragem(main.getVeiculos(), auth.obterUsuario(), main.getGaragem().getVeiculoSelecionado()?._id);
             UI.exibirNotificacao(`Veículo ${novoVeiculo.modelo} adicionado!`, 'sucesso');
             main.fecharModal('add');
         } catch (error) {
@@ -140,7 +141,7 @@ const events = {
         try {
             const veiculoAtualizado = await api.updateVeiculo(id, dadosAtualizados);
             main.atualizarVeiculoLocal(id, veiculoAtualizado);
-            UI.renderizarCardsGaragem(main.getVeiculos(), auth.obterUsuario(), main.getGaragem().getVeiculoSelecionado()?.id);
+            UI.renderizarCardsGaragem(main.getVeiculos(), auth.obterUsuario(), main.getGaragem().getVeiculoSelecionado()?._id);
             UI.exibirNotificacao('Veículo atualizado com sucesso!', 'sucesso');
             main.fecharModal('edit');
         } catch (error) {
@@ -154,7 +155,7 @@ const events = {
             UI.exibirNotificacao(`Visibilidade atualizada para ${ehPublico ? 'Público' : 'Privado'}.`, 'sucesso');
         } catch (error) {
             UI.exibirNotificacao(error.message, 'erro');
-            UI.renderizarCardsGaragem(main.getVeiculos(), auth.obterUsuario(), main.getGaragem().getVeiculoSelecionado()?.id);
+            UI.renderizarCardsGaragem(main.getVeiculos(), auth.obterUsuario(), main.getGaragem().getVeiculoSelecionado()?._id);
         }
     },
     confirmarRemocaoVeiculo: async (id, modelo) => {
@@ -163,7 +164,7 @@ const events = {
                 const resultado = await api.deleteVeiculo(id);
                 UI.exibirNotificacao(resultado.message, 'sucesso');
                 main.removerVeiculoLocal(id);
-                UI.renderizarCardsGaragem(main.getVeiculos(), auth.obterUsuario(), main.getGaragem().getVeiculoSelecionado()?.id);
+                UI.renderizarCardsGaragem(main.getVeiculos(), auth.obterUsuario(), main.getGaragem().getVeiculoSelecionado()?._id);
             } catch (error) {
                 UI.exibirNotificacao(error.message, 'erro');
             }
@@ -268,23 +269,47 @@ const events = {
     abrirModalCompartilhar(id) {
         main.abrirModal('share', id);
     },
-    selecionarParaInteragir: (id, isPublic = false) => {
-        if (isPublic) {
-            UI.exibirNotificacao("Interação detalhada não disponível para veículos públicos.", "info");
-            return;
-        }
-
+    selecionarParaInteragir: async (id, isExterno = false) => {
+        console.log("--- Iniciando seleção ---");
+        console.log("ID recebido:", id);
+        console.log("É externo?", isExterno);
+    
         const garagem = main.getGaragem();
-        if (garagem.selecionarVeiculoPorId(id)) {
-            const usuario = auth.obterUsuario();
-            UI.renderizarCardsGaragem(main.getVeiculos(), usuario, id);
-            
-            const navButton = document.querySelector('.nav-button[data-target="tab-interagir"]');
-            if (navButton) {
-                navButton.click();
+        let sucesso = false;
+    
+        if (isExterno) {
+            console.log("Procurando em veículos externos...");
+            let veiculoJson = main.garagensDeAmigos.find(v => v._id === id);
+            if (veiculoJson) {
+                console.log("Encontrado em garagens de amigos.");
+            } else {
+                veiculoJson = main.veiculosPublicos.find(v => v._id === id);
+                if(veiculoJson) console.log("Encontrado em veículos públicos.");
+            }
+    
+            if (veiculoJson) {
+                console.log("Veículo JSON encontrado:", veiculoJson);
+                sucesso = garagem.selecionarVeiculoExterno(veiculoJson);
+                console.log("Resultado de selecionarVeiculoExterno:", sucesso);
+            } else {
+                console.log("Veículo JSON NÃO encontrado nas listas externas.");
             }
         } else {
-            console.error("events.js: Veículo com ID", id, "não foi encontrado na garagem.");
+            console.log("Procurando na garagem principal...");
+            console.log("Veículos na garagem:", garagem.veiculos);
+            sucesso = garagem.selecionarVeiculoPorId(id);
+            console.log("Resultado de selecionarVeiculoPorId:", sucesso);
+        }
+    
+        if (sucesso) {
+            console.log("Seleção bem-sucedida. Atualizando UI.");
+            const usuario = auth.obterUsuario();
+            if (!isExterno) {
+                UI.renderizarCardsGaragem(main.getVeiculos(), usuario, id);
+            }
+            document.querySelector('.nav-button[data-target="tab-interagir"]').click();
+        } else {
+            console.error("--- FALHA NA SELEÇÃO ---");
             UI.exibirNotificacao("Erro ao selecionar veículo.", "erro");
         }
     },

@@ -6,17 +6,14 @@ const main = {
     // ==================
     garagem: new Garagem(),
     amigos: [],
+    veiculosPublicos: [],
+    garagensDeAmigos: [],
     
     // ==================
     // Funções para manipular o estado
     // ==================
     setVeiculos(veiculos) {
-        // Alimenta a instância da garagem com os dados da API, criando instâncias das classes corretas
-        this.garagem.veiculos = veiculos.map(v => Veiculo.fromJSON({ ...v, id: v._id }));
-        // Se o veículo selecionado anteriormente foi removido (ou a lista recarregada), limpa a seleção
-        if (this.garagem.veiculoSelecionado && !this.garagem.veiculos.some(v => v.id === this.garagem.veiculoSelecionado.id)) {
-            this.garagem.veiculoSelecionado = null;
-        }
+        this.garagem.setVeiculos(veiculos);
     },
     getVeiculos() { 
         return this.garagem.veiculos; 
@@ -42,6 +39,12 @@ const main = {
     setAmigos(amigos) { 
         this.amigos = amigos; 
     },
+    setGaragensDeAmigos(garagens) {
+        this.garagensDeAmigos = garagens;
+    },
+    setVeiculosPublicos(veiculos) {
+        this.veiculosPublicos = veiculos;
+    },
 
     // ==================
     // Funções de Controle de Modais
@@ -52,17 +55,15 @@ const main = {
         if (tipo === 'edit') modalId = 'modal-editar-veiculo';
         if (tipo === 'share') modalId = 'modal-compartilhar-veiculo';
         
-        if (modalId) {
-            const modal = document.getElementById(modalId);
-            if (modal) modal.style.display = 'block';
-        }
+        const modal = document.getElementById(modalId);
+        if (modal) modal.style.display = 'block';
 
         if (id) {
-            const veiculo = this.getVeiculos().find(v => v.id === id); // Correção: usar 'id' que já foi mapeado
+            const veiculo = [...this.getVeiculos(), ...this.garagensDeAmigos, ...this.veiculosPublicos].find(v => v.id === id || v._id === id);
             if(veiculo) {
                 if(tipo === 'edit') {
                     document.getElementById('modal-editar-veiculo-titulo').textContent = `${veiculo.marca} ${veiculo.modelo}`;
-                    document.getElementById('editar-veiculo-id').value = veiculo.id;
+                    document.getElementById('editar-veiculo-id').value = veiculo.id || veiculo._id;
                     document.getElementById('editar-marca').value = veiculo.marca;
                     document.getElementById('editar-modelo').value = veiculo.modelo;
                     document.getElementById('editar-ano').value = veiculo.ano;
@@ -82,13 +83,11 @@ const main = {
         if (tipo === 'edit') modalId = 'modal-editar-veiculo';
         if (tipo === 'share') modalId = 'modal-compartilhar-veiculo';
         
-        if (modalId) {
-            const modal = document.getElementById(modalId);
-            if(modal) {
-                modal.style.display = 'none';
-                if (modal.querySelector('form')) {
-                    modal.querySelector('form').reset();
-                }
+        const modal = document.getElementById(modalId);
+        if(modal) {
+            modal.style.display = 'none';
+            if (modal.querySelector('form')) {
+                modal.querySelector('form').reset();
             }
         }
     },
@@ -109,7 +108,7 @@ const main = {
             UI.atualizarPainelInteracaoUI();
         } catch (error) {
             UI.exibirNotificacao(error.message, 'erro');
-            if(UI.garagemDisplayCards){
+            if (UI.garagemDisplayCards) {
                 UI.garagemDisplayCards.innerHTML = `<p class="placeholder erro">Falha ao carregar sua garagem.</p>`;
             }
         }
@@ -118,6 +117,7 @@ const main = {
     async carregarDadosPublicos() {
         try {
             const veiculosPublicos = await api.getVeiculosPublicos();
+            this.setVeiculosPublicos(veiculosPublicos);
             UI.renderizarVeiculosPublicos(veiculosPublicos);
         } catch (error) {
             console.error("Erro ao carregar dados públicos", error);
@@ -146,13 +146,9 @@ const main = {
         };
         
         // --- CONECTA TODOS OS EVENT LISTENERS DE FORMA SEGURA ---
-
-        // Autenticação
         addSafeListener('#form-login', 'submit', events.handleLogin);
         addSafeListener('#form-registrar', 'submit', events.handleRegister);
         addSafeListener('#link-sair', 'click', events.handleLogout);
-
-        // Navegação Principal e Menu Hambúrguer
         addAllSafeListeners('.nav-button', 'click', events.handleNavClick);
         const menuHamburgerBtn = document.getElementById('menu-hamburger-btn');
         const menuCloseBtn = document.getElementById('menu-close-btn');
@@ -160,20 +156,14 @@ const main = {
             menuHamburgerBtn.addEventListener('click', () => document.getElementById('main-nav').setAttribute('data-visible', 'true'));
             menuCloseBtn.addEventListener('click', () => document.getElementById('main-nav').setAttribute('data-visible', 'false'));
         }
-        
-        // Perfil e Amigos
         addSafeListener('#form-editar-perfil', 'submit', events.handleEditPerfil);
         addSafeListener('#form-alterar-senha', 'submit', events.handleUpdateSenha);
         addSafeListener('#btn-deletar-conta', 'click', events.handleDeleteConta);
         addSafeListener('#form-add-amigo', 'submit', events.handleAddAmigo);
-        
-        // Veículos e Modais
         addSafeListener('#form-add-veiculo', 'submit', events.handleAddVeiculo);
         addSafeListener('#form-editar-veiculo', 'submit', events.handleEditVeiculo);
         addSafeListener('#form-compartilhar-veiculo', 'submit', events.handleShareVeiculo);
         addSafeListener('#btn-abrir-modal-add', 'click', () => this.abrirModal('add'));
-
-        // Interação com Veículos
         addAllSafeListeners('#botoesAcoesComuns button, #botoesAcoesEspecificas button, #botoesAcoesEspecificas input + button', 'click', events.handleAcaoVeiculo);
         addSafeListener('#form-add-manutencao', 'submit', events.handleAddManutencao);
         

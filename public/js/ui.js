@@ -130,7 +130,7 @@ const UI = {
             }
             
             const card = document.createElement('div');
-            card.className = `card-veiculo ${veiculo.id === veiculoSelecionadoId ? 'selecionado' : ''}`;
+            card.className = `card-veiculo ${veiculo._id === veiculoSelecionadoId ? 'selecionado' : ''}`;
             card.innerHTML = this.criarHTMLCardVeiculo(veiculo, userPermission);
             this.garagemDisplayCards.appendChild(card);
         });
@@ -280,16 +280,17 @@ const UI = {
         else if (isFriend) tagHTML = `<span class="card-tag tag-collaborator">Amigo</span>`;
         else tagHTML = `<span class="card-tag tag-viewer">Compartilhado</span>`;
 
-        let actionsHTML = `<button class="btn-card-interagir" onclick="events.selecionarParaInteragir('${veiculo.id}')"><i data-feather="cpu"></i> Interagir</button>`;
+        // CORREÇÃO FINAL: Usa veiculo._id que sempre existe nos dados da API
+        let actionsHTML = `<button class="btn-card-interagir" onclick="events.selecionarParaInteragir('${veiculo._id}')"><i data-feather="cpu"></i> Interagir</button>`;
         if (canEdit) {
-            actionsHTML += `<button class="btn-card-editar" onclick="events.abrirModalEdicao('${veiculo.id}')"><i data-feather="edit-2"></i> Editar</button>`;
+            actionsHTML += `<button class="btn-card-editar" onclick="events.abrirModalEdicao('${veiculo._id}')"><i data-feather="edit-2"></i> Editar</button>`;
         }
         if (canShare) {
-            actionsHTML += `<button class="btn-card-compartilhar" onclick="events.abrirModalCompartilhar('${veiculo.id}')"><i data-feather="share-2"></i> Compartilhar</button>`;
+            actionsHTML += `<button class="btn-card-compartilhar" onclick="events.abrirModalCompartilhar('${veiculo._id}')"><i data-feather="share-2"></i> Compartilhar</button>`;
         }
         if (isOwner || isCollaborator) {
             const modeloInfoSeguro = `${veiculo.marca} ${veiculo.modelo}`.replace(/'/g, "\\'");
-            actionsHTML += `<button class="btn-card-excluir" onclick="events.confirmarRemocaoVeiculo('${veiculo.id}', '${modeloInfoSeguro}')"><i data-feather="trash-2"></i> Excluir</button>`;
+            actionsHTML += `<button class="btn-card-excluir" onclick="events.confirmarRemocaoVeiculo('${veiculo._id}', '${modeloInfoSeguro}')"><i data-feather="trash-2"></i> Excluir</button>`;
         }
         
         const actionColumnCount = actionsHTML.match(/<button/g)?.length || 1;
@@ -308,7 +309,7 @@ const UI = {
                 <span class="dono-info"><i data-feather="user"></i> ${veiculo.nomeDono}</span>
                 <div class="visibilidade-controle">
                     <label class="switch" title="Alterar visibilidade">
-                        <input type="checkbox" onchange="events.alternarVisibilidade('${veiculo.id}', this.checked)" ${veiculo.publico ? 'checked' : ''} ${!canEdit ? 'disabled' : ''}>
+                        <input type="checkbox" onchange="events.alternarVisibilidade('${veiculo._id}', this.checked)" ${veiculo.publico ? 'checked' : ''} ${!canEdit ? 'disabled' : ''}>
                         <span class="slider round"></span>
                     </label>
                     <span>Público</span>
