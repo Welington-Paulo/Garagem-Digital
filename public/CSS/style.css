@@ -436,3 +436,20 @@ input:checked + .slider:before { transform: translateX(20px); }
     text-transform: none;
     letter-spacing: 0;
 }
+
+.shared-info-banner {
+    background-color: rgba(88, 166, 255, 0.1);
+    border: 1px solid rgba(88, 166, 255, 0.3);
+    color: var(--text-link);
+    padding: 0.5rem;
+    border-radius: 6px;
+    margin-bottom: 0.8rem;
+    font-size: 0.85rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+.shared-info-banner small {
+    color: var(--text-secondary);
+    margin-left: 0.3rem;
+}

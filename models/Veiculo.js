@@ -2,19 +2,19 @@
 import mongoose from 'mongoose';
 
 // Subdocumento para definir a estrutura do compartilhamento
-// Isso permite que cada entrada no array 'sharedWith' tenha um usuário e um nível de permissão.
+// Isso cria o relacionamento "muitos-para-muitos" entre Veículos e Usuários
 const shareSchema = new mongoose.Schema({
     usuario: {
         type: mongoose.Schema.Types.ObjectId,
-        ref: 'Usuario',
+        ref: 'Usuario', // Referência importante para o .populate() funcionar depois
         required: true
     },
     permissao: {
         type: String,
-        enum: ['colaborador', 'visualizador'], // Apenas estes dois valores são permitidos
-        default: 'visualizador'               // O padrão é apenas visualizar
+        enum: ['colaborador', 'visualizador'], 
+        default: 'visualizador'
     }
-}, { _id: false }); // _id: false impede que o Mongoose crie um ID para cada subdocumento de compartilhamento
+}, { _id: false }); 
 
 const veiculoSchema = new mongoose.Schema({
     // Dono original do veículo
@@ -23,7 +23,7 @@ const veiculoSchema = new mongoose.Schema({
         ref: 'Usuario',
         required: true
     },
-    // Nome do dono (armazenado para fácil acesso, sem precisar popular)
+    // Nome do dono (armazenado para fácil acesso)
     nomeDono: {
         type: String,
         required: true
@@ -33,7 +33,9 @@ const veiculoSchema = new mongoose.Schema({
         type: Boolean,
         default: false
     },
-    // Array de compartilhamentos com outros usuários
+    
+    // --- ATUALIZAÇÃO DA ATIVIDADE ---
+    // Array que armazena os usuários com quem este veículo foi compartilhado
     sharedWith: [shareSchema],
     
     // Atributos do veículo
@@ -80,7 +82,6 @@ const veiculoSchema = new mongoose.Schema({
 });
 
 // Garante que a combinação de placa e dono seja única.
-// Um mesmo usuário não pode ter dois carros com a mesma placa.
 veiculoSchema.index({ placa: 1, usuarioId: 1 }, { unique: true });
 
 const VeiculoModel = mongoose.model('Veiculo', veiculoSchema);

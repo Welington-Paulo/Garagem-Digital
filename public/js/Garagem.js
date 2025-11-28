@@ -40,9 +40,10 @@ class Garagem {
      * @param {string} id - O ID do veículo a ser encontrado.
      * @returns {Veiculo|undefined} A instância do veículo ou undefined se não for encontrada.
      */
-    encontrarVeiculoPorId(id) {
-        return this.veiculos.find(v => v.id === id);
-    }
+encontrarVeiculoPorId(id) {
+    // Procura pelo ID mapeado OU pelo _id original da API
+    return this.veiculos.find(v => v.id === id || v._id === id);
+}
     
     /**
      * Define um veículo da PRÓPRIA garagem (ou compartilhada) como o selecionado.

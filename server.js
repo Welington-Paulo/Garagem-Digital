@@ -152,6 +152,8 @@ app.post('/api/veiculos', protegerRota, async (req, res) => {
             nomeDono: req.usuarioNome
         };
         const veiculoCriado = await VeiculoModel.create(novoVeiculoData);
+        // Populamos o retorno para manter consistência no frontend se necessário
+        await veiculoCriado.populate('usuarioId', 'nome email');
         res.status(201).json(veiculoCriado);
     } catch (error) {
         if (error.code === 11000) { return res.status(409).json({ error: `Você já possui um veículo com a placa "${req.body.placa}".` }); }
@@ -163,12 +165,17 @@ app.post('/api/veiculos', protegerRota, async (req, res) => {
 
 app.get('/api/veiculos', protegerRota, async (req, res) => {
     try {
+        // --- ATUALIZAÇÃO DA ATIVIDADE ---
+        // Busca veículos próprios OU compartilhados
         const veiculosDoUsuario = await VeiculoModel.find({
             $or: [
                 { usuarioId: req.usuarioId },
                 { 'sharedWith.usuario': req.usuarioId }
             ]
-        }).sort({ createdAt: -1 });
+        })
+        .sort({ createdAt: -1 })
+        // Populate essencial para mostrar quem compartilhou o veículo
+        .populate('usuarioId', 'nome email');
         
         res.json(veiculosDoUsuario);
     } catch (error) {
@@ -190,6 +197,8 @@ app.post('/api/veiculos/:id/share', protegerRota, async (req, res) => {
         if (!veiculo) {
             return res.status(404).json({ error: 'Veículo não encontrado.' });
         }
+        
+        // Validação de Propriedade
         if (veiculo.usuarioId.toString() !== req.usuarioId) {
             return res.status(403).json({ error: 'Acesso negado. Apenas o proprietário pode compartilhar.' });
         }
@@ -222,7 +231,9 @@ app.post('/api/veiculos/:id/share', protegerRota, async (req, res) => {
 
 app.get('/api/veiculos/publicos', async (req, res) => {
     try {
-        const veiculosPublicos = await VeiculoModel.find({ publico: true }).sort({ createdAt: -1 });
+        const veiculosPublicos = await VeiculoModel.find({ publico: true })
+            .sort({ createdAt: -1 })
+            .populate('usuarioId', 'nome email'); // Populate também aqui para consistência
         res.json(veiculosPublicos);
     } catch (error) {
         console.error("[BACKEND] Erro ao buscar veículos públicos:", error);
@@ -249,7 +260,7 @@ app.put('/api/veiculos/:id', protegerRota, async (req, res) => {
             return res.status(403).json({ error: 'Você não tem permissão para editar este veículo.' });
         }
         
-        const veiculoAtualizado = await VeiculoModel.findByIdAndUpdate(id, req.body, { new: true });
+        const veiculoAtualizado = await VeiculoModel.findByIdAndUpdate(id, req.body, { new: true }).populate('usuarioId', 'nome email');
         res.status(200).json(veiculoAtualizado);
     } catch (error) {
         if (error.name === 'ValidationError') { const messages = Object.values(error.errors).map(val => val.message); return res.status(400).json({ error: messages.join(' ') }); }
@@ -326,7 +337,8 @@ app.get('/api/veiculos/:veiculoId/manutencoes', protegerRota, async (req, res) =
         const isSharedWithMe = veiculo.sharedWith.some(s => s.usuario.toString() === req.usuarioId);
         const isFriend = donoDoVeiculo.amigos.some(a => a.usuario.toString() === req.usuarioId && a.status === 'accepted');
 
-        if (!isOwner && !isSharedWithMe && !isFriend) {
+        // Permite se for dono, compartilhado, amigo OU público
+        if (!isOwner && !isSharedWithMe && !isFriend && !veiculo.publico) {
             return res.status(404).json({ error: 'Veículo não encontrado ou você não tem permissão para vê-lo.' });
         }
 
